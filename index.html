@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MandelbrotGuessr</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #header {
+            background-color: #1a1a1a;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+        }
+
+        #gameInfo {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        #timer {
+            font-size: 1.1rem;
+            color: #ffd93d;
+        }
+
+        #round {
+            font-size: 1.1rem;
+            color: #4ecdc4;
+        }
+
+        #title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #score {
+            font-size: 1.2rem;
+        }
+
+        #mainArea {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mainCanvas {
+            max-width: 90%;
+            max-height: 90%;
+            border: 2px solid #333;
+            cursor: crosshair;
+        }
+
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 214px;
+            border: 3px solid #4ecdc4;
+            cursor: pointer;
+            background-color: #000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        #minimap:hover {
+            width: 450px;
+            height: 321px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+        }
+        
+        #minimap.expanded {
+            width: 600px !important;
+            height: 428px !important;
+        }
+        
+        #minimap.expanded:hover {
+            width: 600px !important;
+            height: 428px !important;
+        }
+
+        #minimapControls {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #minimap:hover #minimapControls {
+            opacity: 1;
+        }
+
+        .minimapBtn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 18px;
+            background-color: rgba(78, 205, 196, 0.8);
+            border-radius: 3px;
+        }
+
+        .minimapBtn:hover {
+            background-color: #4ecdc4;
+        }
+
+        #expandBtn {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #minimap:hover #expandBtn {
+            opacity: 1;
+        }
+
+
+        #gameOverScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #gameOverContent {
+            background-color: #1a1a1a;
+            padding: 3rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #4ecdc4;
+            max-width: 500px;
+        }
+
+        #gameOverContent h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        #finalScore {
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #highScoresList {
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .high-score-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid #333;
+        }
+
+        #playerNameInput {
+            padding: 0.5rem;
+            font-size: 1rem;
+            background-color: #2a2a2a;
+            color: #fff;
+            border: 2px solid #4ecdc4;
+            border-radius: 5px;
+            margin: 1rem 0;
+            width: 200px;
+        }
+
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #startContent {
+            background-color: #1a1a1a;
+            padding: 3rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #4ecdc4;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        #startContent h1 {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            font-size: 3rem;
+        }
+
+        .instructions {
+            background-color: #2a2a2a;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            font-size: 1rem;
+        }
+
+        .instructions p {
+            margin: 0.5rem 0;
+            text-align: left;
+        }
+
+        #playerNameStart {
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            background-color: #2a2a2a;
+            color: #fff;
+            border: 2px solid #4ecdc4;
+            border-radius: 5px;
+            margin: 1rem 0;
+            width: 250px;
+        }
+
+        .score-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .score-time {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        #minimapCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #guessMarker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ff6b6b;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            background-color: #4ecdc4;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45b3b0;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+        }
+
+        #result {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(26, 26, 26, 0.95);
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+            min-width: 400px;
+            border: 2px solid #4ecdc4;
+        }
+
+        #resultScore {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #difficulty {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(26, 26, 26, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .diff-easy { color: #4ecdc4; }
+        .diff-medium { color: #45b3b0; }
+        .diff-hard { color: #ffd93d; }
+        .diff-veryhard { color: #ff6b6b; }
+        .diff-extreme { color: #e74c3c; }
+    </style>
+    <script src="locations.js"></script>
+</head>
+<body>
+    <div id="startScreen">
+        <div id="startContent">
+            <h1>MandelbrotGuessr</h1>
+            
+            <div class="instructions">
+                <p>• 5 rounds, 60 seconds each</p>
+                <p>• Click to guess location, drag to pan</p>
+                <p>• Scroll wheel to zoom</p>
+            </div>
+            
+            <input type="text" id="playerNameStart" placeholder="Name (optional)" maxlength="20" onkeypress="if(event.key==='Enter') startGame()">
+            <br>
+            <button onclick="startGame()">Start</button>
+        </div>
+    </div>
+
+    <div id="gameContainer">
+        <div id="header">
+            <div id="title">MandelbrotGuessr</div>
+            <div id="gameInfo">
+                <div id="round">Round: <span id="roundValue">1</span>/5</div>
+                <div id="timer">Time: <span id="timerValue">60</span>s</div>
+                <div id="score">Score: <span id="scoreValue">0</span></div>
+            </div>
+        </div>
+
+        <div id="mainArea">
+            <div id="loading">Loading...</div>
+            <canvas id="mainCanvas"></canvas>
+
+            <div id="minimap">
+                <canvas id="minimapCanvas"></canvas>
+                <div id="guessMarker"></div>
+                <button id="expandBtn" class="minimapBtn" onclick="toggleMinimapSize()">⤢</button>
+                <div id="minimapControls">
+                    <button class="minimapBtn" onclick="zoomMinimap(1.5)">+</button>
+                    <button class="minimapBtn" onclick="zoomMinimap(0.67)">-</button>
+                    <button class="minimapBtn" onclick="resetMinimap()">⟲</button>
+                </div>
+            </div>
+
+            <div id="difficulty"></div>
+
+            <div id="controls">
+                <button id="guessBtn" onclick="makeGuess()">Make Guess</button>
+                <button id="nextBtn" onclick="nextLocation()" style="display: none;">Next Location</button>
+            </div>
+
+            <div id="result">
+                <h2>Your Guess</h2>
+                <div id="resultScore">0</div>
+                <p id="resultText"></p>
+                <p id="distanceText"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverScreen">
+        <div id="gameOverContent">
+            <h1>Score: <span id="finalScore">0</span></h1>
+            <input type="text" id="playerNameInput" placeholder="Name for leaderboard" maxlength="20" onkeypress="if(event.key==='Enter') submitHighScore()">
+            <button onclick="submitHighScore()">Submit</button>
+            <button onclick="retryGame()">Play Again</button>
+            <div id="highScoresList">
+                <h3>High Scores</h3>
+                <div id="highScoresContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let currentLocation = null;
+        let currentGuess = null;
+        let totalScore = 0;
+        let roundNumber = 0;
+        let locations = [];
+        let gameActive = true;
+        let timeRemaining = 60;
+        let timerInterval = null;
+        let playerName = 'Anonymous';
+        let minimapExpanded = false;
+        let mouseDownTime = 0;
+        let mouseDownPos = { x: 0, y: 0 };
+        const CLICK_THRESHOLD = 200; // milliseconds
+        const DRAG_THRESHOLD = 5; // pixels
+        const ROUNDS_PER_GAME = 5;
+        const TIME_PER_ROUND = 60;
+        
+        // GitHub Gist configuration for high scores
+        const GIST_ID = 'YOUR_GIST_ID'; // You'll need to create this
+        const GITHUB_TOKEN = null; // For read-only access, no token needed
+
+        // Canvas elements
+        const mainCanvas = document.getElementById('mainCanvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+
+        // Minimap state
+        let minimapBounds = {
+            xmin: -2.5,
+            xmax: 1.0,
+            ymin: -1.25,
+            ymax: 1.25
+        };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragStartBounds = null;
+
+        // Mandelbrot calculation
+        function calculateMandelbrot(xmin, xmax, ymin, ymax, width, height, maxIterations = 100) {
+            const imageData = new ImageData(width, height);
+            const data = imageData.data;
+
+            for (let py = 0; py < height; py++) {
+                for (let px = 0; px < width; px++) {
+                    const x0 = xmin + (px / width) * (xmax - xmin);
+                    const y0 = ymin + (py / height) * (ymax - ymin);
+
+                    let x = 0, y = 0;
+                    let iteration = 0;
+
+                    while (x*x + y*y <= 4 && iteration < maxIterations) {
+                        const xtemp = x*x - y*y + x0;
+                        y = 2*x*y + y0;
+                        x = xtemp;
+                        iteration++;
+                    }
+
+                    const idx = (py * width + px) * 4;
+
+                    if (iteration === maxIterations) {
+                        // Inside the set - black
+                        data[idx] = 0;
+                        data[idx + 1] = 0;
+                        data[idx + 2] = 0;
+                    } else {
+                        // Outside the set - color based on iteration count
+                        const hue = (iteration / maxIterations) * 360;
+                        const rgb = hslToRgb(hue, 100, 50);
+                        data[idx] = rgb[0];
+                        data[idx + 1] = rgb[1];
+                        data[idx + 2] = rgb[2];
+                    }
+                    data[idx + 3] = 255; // Alpha
+                }
+            }
+
+            return imageData;
+        }
+
+        function hslToRgb(h, s, l) {
+            h = h / 360;
+            s = s / 100;
+            l = l / 100;
+
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        // Initialize locations from external file
+        function initializeLocations() {
+            // Check if MANDELBROT_LOCATIONS is defined (loaded from script tag)
+            if (typeof MANDELBROT_LOCATIONS !== 'undefined') {
+                locations = MANDELBROT_LOCATIONS;
+                console.log(`Loaded ${locations.length} locations`);
+            } else {
+                console.error('MANDELBROT_LOCATIONS not defined');
+                alert('Failed to load game locations. Please refresh the page.');
+                return;
+            }
+
+            if (locations.length === 0) {
+                alert('No locations found. Please check that locations.js is present.');
+                return;
+            }
+
+            // Shuffle locations
+            locations.sort(() => Math.random() - 0.5);
+        }
+
+        // Render location
+        function renderLocation(location) {
+            const width = 800;
+            const height = 600;
+
+            mainCanvas.width = width;
+            mainCanvas.height = height;
+
+            const xRange = 3.5 / location.zoom;
+            const yRange = 2.5 / location.zoom;
+
+            const xmin = location.x - xRange / 2;
+            const xmax = location.x + xRange / 2;
+            const ymin = location.y - yRange / 2;
+            const ymax = location.y + yRange / 2;
+
+            document.getElementById('loading').style.display = 'block';
+
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                const imageData = calculateMandelbrot(xmin, xmax, ymin, ymax, width, height);
+                mainCtx.putImageData(imageData, 0, 0);
+                document.getElementById('loading').style.display = 'none';
+
+                // Update zoom depth display
+                updateZoomDepth(location.zoom);
+            }, 50);
+        }
+
+        // Render minimap
+        function renderMinimap() {
+            const rect = minimapCanvas.getBoundingClientRect();
+            const width = Math.round(rect.width);
+            const height = Math.round(rect.height);
+
+            minimapCanvas.width = width;
+            minimapCanvas.height = height;
+
+            // Use current minimap bounds
+            const imageData = calculateMandelbrot(
+                minimapBounds.xmin, 
+                minimapBounds.xmax, 
+                minimapBounds.ymin, 
+                minimapBounds.ymax, 
+                width, 
+                height, 
+                50
+            );
+            minimapCtx.putImageData(imageData, 0, 0);
+        }
+
+        // Zoom minimap
+        function zoomMinimap(factor) {
+            const centerX = (minimapBounds.xmin + minimapBounds.xmax) / 2;
+            const centerY = (minimapBounds.ymin + minimapBounds.ymax) / 2;
+            const width = (minimapBounds.xmax - minimapBounds.xmin) / factor;
+            const height = (minimapBounds.ymax - minimapBounds.ymin) / factor;
+
+            minimapBounds.xmin = centerX - width / 2;
+            minimapBounds.xmax = centerX + width / 2;
+            minimapBounds.ymin = centerY - height / 2;
+            minimapBounds.ymax = centerY + height / 2;
+
+            renderMinimap();
+        }
+
+        // Reset minimap
+        function resetMinimap() {
+            minimapBounds = {
+                xmin: -2.5,
+                xmax: 1.0,
+                ymin: -1.25,
+                ymax: 1.25
+            };
+            renderMinimap();
+        }
+
+        // Toggle minimap size
+        function toggleMinimapSize() {
+            minimapExpanded = !minimapExpanded;
+            const minimap = document.getElementById('minimap');
+            
+            if (minimapExpanded) {
+                // Triple the baseline size
+                minimap.classList.add('expanded');
+            } else {
+                // Return to baseline (will still double on hover)
+                minimap.classList.remove('expanded');
+            }
+            
+            // Re-render to adjust to new size
+            setTimeout(() => {
+                renderMinimap();
+                // Redraw guess marker if present
+                if (currentGuess && document.getElementById('guessMarker').style.display === 'block') {
+                    updateGuessMarkerPosition();
+                }
+            }, 350); // Wait for CSS transition
+        }
+
+        // Update guess marker position
+        function updateGuessMarkerPosition() {
+            if (!currentGuess) return;
+            
+            const rect = minimapCanvas.getBoundingClientRect();
+            const x = ((currentGuess.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * rect.width;
+            const y = ((currentGuess.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * rect.height;
+            
+            const marker = document.getElementById('guessMarker');
+            
+            // Hide marker if it's outside the minimap bounds
+            if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+                marker.style.display = 'none';
+            } else {
+                marker.style.left = x + 'px';
+                marker.style.top = y + 'px';
+                marker.style.display = 'block';
+            }
+        }
+
+        // Update zoom depth display
+        function updateZoomDepth(zoom) {
+            const depthElement = document.getElementById('difficulty');
+            
+            // Format zoom level with appropriate units
+            let depthText;
+            if (zoom >= 1000000) {
+                depthText = `Depth: ${(zoom / 1000000).toFixed(1)}M`;
+            } else if (zoom >= 1000) {
+                depthText = `Depth: ${Math.round(zoom / 1000)}k`;
+            } else {
+                depthText = `Depth: ${Math.round(zoom)}`;
+            }
+            
+            depthElement.textContent = depthText;
+            depthElement.className = ''; // Remove old difficulty classes
+        }
+
+        // Handle minimap interactions
+        minimapCanvas.addEventListener('mousedown', (e) => {
+            const rect = minimapCanvas.getBoundingClientRect();
+            mouseDownTime = Date.now();
+            mouseDownPos = { x: e.clientX, y: e.clientY };
+            dragStart.x = e.clientX;
+            dragStart.y = e.clientY;
+            dragStartBounds = { ...minimapBounds };
+            minimapCanvas.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
+        minimapCanvas.addEventListener('mousemove', (e) => {
+            if (mouseDownTime > 0) {
+                const distance = Math.sqrt(
+                    Math.pow(e.clientX - mouseDownPos.x, 2) + 
+                    Math.pow(e.clientY - mouseDownPos.y, 2)
+                );
+                
+                if (distance > DRAG_THRESHOLD) {
+                    isDragging = true;
+                }
+            }
+            
+            if (isDragging) {
+                const rect = minimapCanvas.getBoundingClientRect();
+                const dx = (e.clientX - dragStart.x) / rect.width;
+                const dy = (e.clientY - dragStart.y) / rect.height;
+
+                const width = dragStartBounds.xmax - dragStartBounds.xmin;
+                const height = dragStartBounds.ymax - dragStartBounds.ymin;
+
+                minimapBounds.xmin = dragStartBounds.xmin - dx * width;
+                minimapBounds.xmax = dragStartBounds.xmax - dx * width;
+                minimapBounds.ymin = dragStartBounds.ymin - dy * height;
+                minimapBounds.ymax = dragStartBounds.ymax - dy * height;
+
+                renderMinimap();
+                // Update marker position while panning
+                if (currentGuess && document.getElementById('guessMarker').style.display === 'block') {
+                    updateGuessMarkerPosition();
+                }
+            } else {
+                minimapCanvas.style.cursor = 'pointer';
+            }
+        });
+
+        minimapCanvas.addEventListener('mouseup', (e) => {
+            const timeDiff = Date.now() - mouseDownTime;
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - mouseDownPos.x, 2) + 
+                Math.pow(e.clientY - mouseDownPos.y, 2)
+            );
+            
+            // It's a click if it was quick and didn't move much
+            if (timeDiff < CLICK_THRESHOLD && distance < DRAG_THRESHOLD && !isDragging) {
+                // Handle click
+                const rect = minimapCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Convert to current minimap Mandelbrot coordinates
+                const mandX = minimapBounds.xmin + (x / rect.width) * (minimapBounds.xmax - minimapBounds.xmin);
+                const mandY = minimapBounds.ymin + (y / rect.height) * (minimapBounds.ymax - minimapBounds.ymin);
+
+                currentGuess = { x: mandX, y: mandY };
+
+                // Update marker position
+                const marker = document.getElementById('guessMarker');
+                marker.style.left = x + 'px';
+                marker.style.top = y + 'px';
+                marker.style.display = 'block';
+            }
+            
+            isDragging = false;
+            mouseDownTime = 0;
+            minimapCanvas.style.cursor = 'pointer';
+        });
+
+
+        // Handle scroll wheel zoom on minimap
+        minimapCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            // Get mouse position relative to canvas
+            const rect = minimapCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Convert to Mandelbrot coordinates
+            const mouseRatioX = mouseX / rect.width;
+            const mouseRatioY = mouseY / rect.height;
+            const mandX = minimapBounds.xmin + mouseRatioX * (minimapBounds.xmax - minimapBounds.xmin);
+            const mandY = minimapBounds.ymin + mouseRatioY * (minimapBounds.ymax - minimapBounds.ymin);
+            
+            // Determine zoom factor
+            const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8;
+            
+            // Calculate new bounds centered on mouse position
+            const width = minimapBounds.xmax - minimapBounds.xmin;
+            const height = minimapBounds.ymax - minimapBounds.ymin;
+            const newWidth = width * zoomFactor;
+            const newHeight = height * zoomFactor;
+            
+            // Keep mouse position fixed during zoom
+            minimapBounds.xmin = mandX - mouseRatioX * newWidth;
+            minimapBounds.xmax = mandX + (1 - mouseRatioX) * newWidth;
+            minimapBounds.ymin = mandY - mouseRatioY * newHeight;
+            minimapBounds.ymax = mandY + (1 - mouseRatioY) * newHeight;
+            
+            renderMinimap();
+            // Update marker position after zoom
+            if (currentGuess && document.getElementById('guessMarker').style.display === 'block') {
+                updateGuessMarkerPosition();
+            }
+        });
+
+        // Make guess
+        function makeGuess() {
+            if (!currentLocation || !gameActive) return;
+            
+            stopTimer();
+            
+            // If no guess was made, use center of map
+            if (!currentGuess) {
+                currentGuess = { x: -0.75, y: 0 };
+            }
+
+            // Calculate distance
+            const dx = currentGuess.x - currentLocation.x;
+            const dy = currentGuess.y - currentLocation.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Also check symmetrical position across x-axis (Mandelbrot is symmetric horizontally)
+            const dySymmetric = currentGuess.y - (-currentLocation.y);
+            const distanceSymmetric = Math.sqrt(dx * dx + dySymmetric * dySymmetric);
+            
+            // Use the smaller distance (could be the symmetric guess)
+            const minDistance = Math.min(distance, distanceSymmetric);
+
+            // Calculate score based on absolute distance, not relative to zoom
+            // This way zooming in doesn't penalize you
+            const maxScore = 5000;
+            
+            // Use a scoring curve based on the actual zoom level of the location
+            // Higher zoom locations are harder, so give more leeway
+            const difficultyFactor = Math.log10(currentLocation.zoom + 1);
+            const scoringDistance = minDistance * 1000; // Scale up for better granularity
+            
+            // Adjust scoring curve based on zoom difficulty
+            const score = Math.max(0, Math.round(maxScore * Math.exp(-scoringDistance / difficultyFactor)));
+
+            totalScore += score;
+            document.getElementById('scoreValue').textContent = totalScore;
+
+            // Show result
+            showResult(score, minDistance);
+
+            // Update buttons
+            document.getElementById('guessBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'block';
+        }
+
+        // Show result
+        function showResult(score, distance) {
+            const resultDiv = document.getElementById('result');
+            const resultScore = document.getElementById('resultScore');
+            const resultText = document.getElementById('resultText');
+            const distanceText = document.getElementById('distanceText');
+
+            resultScore.textContent = score;
+
+            if (score >= 4500) {
+                resultText.textContent = "Perfect!";
+            } else if (score >= 3000) {
+                resultText.textContent = "Very close!";
+            } else if (score >= 1000) {
+                resultText.textContent = "Good guess";
+            } else {
+                resultText.textContent = "";
+            }
+
+            distanceText.textContent = `Distance: ${distance.toFixed(6)} units`;
+
+            resultDiv.style.display = 'block';
+
+            // Draw actual location on minimap (accounting for current minimap bounds)
+            const actualX = ((currentLocation.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
+            const actualY = ((currentLocation.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+
+            minimapCtx.fillStyle = '#4ecdc4';
+            minimapCtx.beginPath();
+            minimapCtx.arc(actualX, actualY, 5, 0, 2 * Math.PI);
+            minimapCtx.fill();
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.stroke();
+
+            // Draw line between guess and actual
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            const guessX = ((currentGuess.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
+            const guessY = ((currentGuess.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+            minimapCtx.moveTo(guessX, guessY);
+            minimapCtx.lineTo(actualX, actualY);
+            minimapCtx.stroke();
+        }
+
+        // Next location
+        function nextLocation() {
+            roundNumber++;
+            document.getElementById('roundValue').textContent = roundNumber + 1;
+
+            if (roundNumber >= ROUNDS_PER_GAME) {
+                // Game over
+                endGame();
+                return;
+            }
+
+            // Reset UI
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('guessBtn').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('guessMarker').style.display = 'none';
+
+            currentGuess = null;
+            currentLocation = locations[roundNumber];
+
+            renderMinimap();
+            renderLocation(currentLocation);
+            startTimer();
+        }
+
+        // Start game from start screen
+        function startGame() {
+            const nameInput = document.getElementById('playerNameStart').value.trim();
+            playerName = nameInput || 'Anonymous';
+            document.getElementById('startScreen').style.display = 'none';
+            startNewGame();
+        }
+
+        // Start new game
+        function startNewGame() {
+            totalScore = 0;
+            roundNumber = 0;
+            gameActive = true;
+            document.getElementById('scoreValue').textContent = '0';
+            document.getElementById('roundValue').textContent = '1';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            
+            // Shuffle locations again
+            locations.sort(() => Math.random() - 0.5);
+            
+            // Reset UI and start first round
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('guessBtn').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('guessMarker').style.display = 'none';
+            
+            currentGuess = null;
+            currentLocation = locations[0];
+            
+            resetMinimap(); // Reset minimap to full view
+            renderLocation(currentLocation);
+            startTimer();
+        }
+
+        // Timer functions
+        function startTimer() {
+            stopTimer(); // Clear any existing timer
+            timeRemaining = TIME_PER_ROUND;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    makeGuess(); // Auto-submit when time runs out
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timerValue').textContent = timeRemaining;
+            // Change color when time is running out
+            const timerElement = document.getElementById('timer');
+            if (timeRemaining <= 10) {
+                timerElement.style.color = '#ff6b6b';
+            } else if (timeRemaining <= 20) {
+                timerElement.style.color = '#ffd93d';
+            } else {
+                timerElement.style.color = '#4ecdc4';
+            }
+        }
+
+        // End game
+        function endGame() {
+            gameActive = false;
+            stopTimer();
+            document.getElementById('finalScore').textContent = totalScore;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            loadHighScores();
+        }
+
+        // High score functions
+        async function loadHighScores() {
+            try {
+                // For GitHub Pages, we'll use localStorage for now
+                // In production, you'd fetch from a GitHub Gist
+                const scores = JSON.parse(localStorage.getItem('mandelbrotHighScores') || '[]');
+                displayHighScores(scores);
+            } catch (e) {
+                console.error('Failed to load high scores:', e);
+            }
+        }
+
+        async function submitHighScore() {
+            const playerNameInput = document.getElementById('playerNameInput').value.trim() || playerName;
+            if (!playerNameInput) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            try {
+                // For GitHub Pages, we'll use localStorage
+                // In production, you'd update a GitHub Gist
+                const scores = JSON.parse(localStorage.getItem('mandelbrotHighScores') || '[]');
+                scores.push({
+                    name: playerNameInput,
+                    score: totalScore,
+                    date: new Date().toISOString()
+                });
+                
+                // Sort by score descending and keep top 10
+                scores.sort((a, b) => b.score - a.score);
+                scores.splice(10);
+                
+                localStorage.setItem('mandelbrotHighScores', JSON.stringify(scores));
+                displayHighScores(scores);
+                
+                // Disable submit button
+                document.getElementById('playerNameInput').disabled = true;
+                const submitBtn = Array.from(document.querySelectorAll('#gameOverContent button')).find(btn => btn.textContent === 'Submit Score');
+                if (submitBtn) submitBtn.disabled = true;
+            } catch (e) {
+                console.error('Failed to save high score:', e);
+            }
+        }
+
+        function displayHighScores(scores) {
+            const container = document.getElementById('highScoresContent');
+            container.innerHTML = scores.map((score, index) => {
+                const date = new Date(score.date);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                
+                return `
+                    <div class="high-score-entry">
+                        <span>${index + 1}. ${score.name}</span>
+                        <div class="score-info">
+                            <span>${score.score}</span>
+                            <span class="score-time">${dateStr} ${timeStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Retry game
+        function retryGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('playerNameInput').disabled = false;
+            document.getElementById('playerNameInput').value = '';
+            const submitBtn = Array.from(document.querySelectorAll('#gameOverContent button')).find(btn => btn.textContent === 'Submit Score');
+            if (submitBtn) submitBtn.disabled = false;
+            startNewGame();
+        }
+
+        // Global keyboard handler
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                // During gameplay
+                if (gameActive && !document.getElementById('startScreen').style.display && 
+                    !document.getElementById('gameOverScreen').style.display) {
+                    
+                    // If guess button is visible, make a guess
+                    if (document.getElementById('guessBtn').style.display !== 'none') {
+                        makeGuess();
+                    } 
+                    // If next button is visible, go to next location
+                    else if (document.getElementById('nextBtn').style.display !== 'none') {
+                        nextLocation();
+                    }
+                }
+                // On game over screen without name entered
+                else if (document.getElementById('gameOverScreen').style.display === 'flex' &&
+                         !document.getElementById('playerNameInput').value.trim() &&
+                         !document.getElementById('playerNameInput').disabled) {
+                    retryGame();
+                }
+            }
+        });
+
+        // Initialize game
+        window.onload = async () => {
+            await initializeLocations();
+            // Show start screen and wait for player
+            document.getElementById('startScreen').style.display = 'flex';
+        };
+    </script>
+</body>
+</html>
