@@ -90,20 +90,10 @@
             z-index: 5;
         }
 
-        #minimap:hover {
-            width: 450px;
-            height: 321px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-        }
-        
         #minimap.expanded {
-            width: 600px !important;
-            height: 428px !important;
-        }
-        
-        #minimap.expanded:hover {
-            width: 600px !important;
-            height: 428px !important;
+            width: 750px !important;
+            height: 535px !important;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
         }
 
         #minimapControls {
@@ -459,9 +449,6 @@
         const ROUNDS_PER_GAME = 5;
         const TIME_PER_ROUND = 60;
         
-        // GitHub Gist configuration for high scores
-        const GIST_ID = 'YOUR_GIST_ID'; // You'll need to create this
-        const GITHUB_TOKEN = null; // For read-only access, no token needed
 
         // Canvas elements
         const mainCanvas = document.getElementById('mainCanvas');
@@ -1027,12 +1014,12 @@
         // High score functions
         async function loadHighScores() {
             try {
-                // For GitHub Pages, we'll use localStorage for now
-                // In production, you'd fetch from a GitHub Gist
+                // Always use localStorage for now (safe and simple)
                 const scores = JSON.parse(localStorage.getItem('mandelbrotHighScores') || '[]');
                 displayHighScores(scores);
             } catch (e) {
                 console.error('Failed to load high scores:', e);
+                displayHighScores([]);
             }
         }
 
@@ -1044,8 +1031,7 @@
             }
             
             try {
-                // For GitHub Pages, we'll use localStorage
-                // In production, you'd update a GitHub Gist
+                // Save to localStorage
                 const scores = JSON.parse(localStorage.getItem('mandelbrotHighScores') || '[]');
                 scores.push({
                     name: playerNameInput,
@@ -1062,7 +1048,7 @@
                 
                 // Disable submit button
                 document.getElementById('playerNameInput').disabled = true;
-                const submitBtn = Array.from(document.querySelectorAll('#gameOverContent button')).find(btn => btn.textContent === 'Submit Score');
+                const submitBtn = Array.from(document.querySelectorAll('#gameOverContent button')).find(btn => btn.textContent === 'Submit');
                 if (submitBtn) submitBtn.disabled = true;
             } catch (e) {
                 console.error('Failed to save high score:', e);
