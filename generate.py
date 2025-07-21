@@ -9,6 +9,13 @@ from tqdm import tqdm
 import multiprocessing
 from functools import partial
 import time
+import sys
+from pathlib import Path
+
+# Add nn directory to import the uniform generation
+sys.path.append(str(Path(__file__).parent / "nn"))
+import utils
+import config
 
 class MandelbrotLocationFinder:
     def __init__(self, max_iterations=100, n_workers=None):
@@ -76,147 +83,75 @@ class MandelbrotLocationFinder:
 
         return entropy >= min_entropy and edge_density >= min_edge_density, interest_score
 
-    def process_location(self, params):
-        """Process a single location (for parallel execution)"""
-        region, resolution = params
-        width, height = resolution
 
-        if region.get("random_mode", False):
-            # For random exploration: bias towards boundary by sampling from known interesting areas
-            # Use a coarse calculation to find boundary points
-            x_center = random.uniform(region["xmin"], region["xmax"])
-            y_center = random.uniform(region["ymin"], region["ymax"])
-
-            # Quick check if near boundary (low res)
-            quick_check = self.calculate_mandelbrot(
-                x_center - 0.01, x_center + 0.01,
-                y_center - 0.01, y_center + 0.01,
-                32, 32
-            )
-
-            # If not near boundary (all same value), try again
-            if len(np.unique(quick_check)) < 3:
-                return None
-
-            # Random deep zoom between 1000x and 1000000x
-            zoom = 10 ** random.uniform(3, 6)
-        else:
-            # Random location within the specified region
-            x_center = random.uniform(region["xmin"], region["xmax"])
-            y_center = random.uniform(region["ymin"], region["ymax"])
-
-            # Random zoom level variation (keep it deep - between 0.8x and 5x of base zoom)
-            zoom = region["zoom"] * random.uniform(0.8, 5.0)
-
-        # Calculate bounds
-        x_range = 3.5 / zoom
-        y_range = 2.5 / zoom
-        xmin = x_center - x_range/2
-        xmax = x_center + x_range/2
-        ymin = y_center - y_range/2
-        ymax = y_center + y_range/2
-
-        # Calculate Mandelbrot
-        mandelbrot = self.calculate_mandelbrot(xmin, xmax, ymin, ymax, width, height)
-
-        # Check if interesting
-        is_good, score = self.is_interesting(mandelbrot)
-
-        if is_good:
-            return {
-                "x": x_center,
-                "y": y_center,
+    def find_uniform_locations(self, num_locations=1000, zoom_range=(1, 3), 
+                             min_entropy=3.5, min_edge_density=0.05):
+        """Find uniformly distributed locations with quality filtering"""
+        print(f"Generating {num_locations} uniformly distributed locations...")
+        print(f"Zoom range: 10^{zoom_range[0]:.1f} to 10^{zoom_range[1]:.1f}")
+        print(f"Quality thresholds - Min entropy: {min_entropy}, Min edge density: {min_edge_density}")
+        
+        # Use the enhanced generation from nn/utils with quality filtering
+        location_tuples = utils.generate_uniform_locations(
+            num_locations, 
+            zoom_range,
+            max_iterations=self.max_iterations,
+            validation_size=64,  # Larger for better quality metrics
+            min_entropy=min_entropy,
+            min_edge_density=min_edge_density,
+            max_inside_ratio=0.95
+        )
+        
+        # Convert to the format expected by the rest of the code
+        locations = []
+        for x, y, zoom in location_tuples:
+            # Calculate a preview to get metrics for the score
+            preview_size = 128
+            x_range = 3.5 / zoom
+            y_range = 2.5 / zoom
+            xmin = x - x_range/2
+            xmax = x + x_range/2
+            ymin = y - y_range/2
+            ymax = y + y_range/2
+            
+            preview = self.calculate_mandelbrot(xmin, xmax, ymin, ymax, preview_size, preview_size)
+            entropy = self.calculate_entropy(preview)
+            edge_density = self.calculate_edge_density(preview)
+            score = (entropy / 8.0) * 0.6 + edge_density * 0.4
+            
+            locations.append({
+                "x": x,
+                "y": y,
                 "zoom": zoom,
                 "score": score,
-                "difficulty": self._calculate_difficulty(zoom)
-            }
-        return None
-
-    def find_interesting_locations_parallel(self, num_locations=1000,
-                                          batch_size=100,
-                                          resolution=(256, 256)):
-        """Find interesting locations using parallel processing"""
-        locations = []
-
-        # Hybrid approach: known interesting regions + random boundary exploration
-        search_regions = [
-            # Known deep regions (40% of searches)
-            {"xmin": -0.7533, "xmax": -0.7532, "ymin": 0.1138, "ymax": 0.1139, "zoom": 10000, "weight": 0.1},
-            {"xmin": 0.27507, "xmax": 0.27508, "ymin": 0.00628, "ymax": 0.00629, "zoom": 50000, "weight": 0.1},
-            {"xmin": -0.088, "xmax": -0.087, "ymin": 0.654, "ymax": 0.655, "zoom": 1000, "weight": 0.05},
-            {"xmin": -1.25066, "xmax": -1.25065, "ymin": -0.02012, "ymax": -0.02011, "zoom": 100000, "weight": 0.05},
-            {"xmin": -0.7269, "xmax": -0.7268, "ymin": 0.1889, "ymax": 0.1890, "zoom": 10000, "weight": 0.05},
-            {"xmin": -1.674, "xmax": -1.673, "ymin": 0.0001, "ymax": 0.0002, "zoom": 10000, "weight": 0.05},
-
-            # Random exploration along main boundary (60% of searches)
-            {"xmin": -2.0, "xmax": 0.5, "ymin": -1.25, "ymax": 1.25, "zoom": 1000, "weight": 0.6, "random_mode": True},
-        ]
-
-        # Create weighted region selection
-        weights = [r["weight"] for r in search_regions]
-
-        print(f"Starting parallel search with {self.n_workers} workers...")
-        start_time = time.time()
-
-        with ProcessPoolExecutor(max_workers=self.n_workers) as executor:
-            with tqdm(total=num_locations, desc="Finding locations") as pbar:
-                while len(locations) < num_locations:
-                    # Create batch of tasks
-                    current_batch_size = min(batch_size, num_locations - len(locations))
-                    tasks = []
-
-                    for _ in range(current_batch_size * 3):  # Over-sample to account for rejections
-                        region = np.random.choice(search_regions, p=weights)
-                        tasks.append((region, resolution))
-
-                    # Submit batch for processing
-                    futures = {executor.submit(self.process_location, task): task
-                             for task in tasks}
-
-                    # Collect results
-                    for future in as_completed(futures):
-                        result = future.result()
-                        if result and len(locations) < num_locations:
-                            locations.append(result)
-                            pbar.update(1)
-                            pbar.set_postfix({"score": f"{result['score']:.3f}",
-                                            "zoom": f"{result['zoom']:.1f}"})
-
-        elapsed = time.time() - start_time
-        print(f"\nFound {len(locations)} locations in {elapsed:.1f} seconds")
-        print(f"Average time per location: {elapsed/len(locations):.3f} seconds")
-
-        # Sort by difficulty
-        locations.sort(key=lambda x: x["difficulty"])
-
+                "entropy": entropy,
+                "edge_density": edge_density
+            })
+        
+        # Sort by score (higher score = more interesting/complex)
+        locations.sort(key=lambda x: -x["score"])
+        
         return locations
 
-    def _calculate_difficulty(self, zoom):
-        """Calculate difficulty based on zoom level"""
-        if zoom < 2:
-            return 1  # Easy - full view
-        elif zoom < 10:
-            return 2  # Medium - slightly zoomed
-        elif zoom < 100:
-            return 3  # Hard - significantly zoomed
-        elif zoom < 1000:
-            return 4  # Very Hard - deep zoom
-        else:
-            return 5  # Extreme - ultra deep zoom
 
-    def save_locations(self, locations, filename="mandelbrot_locations.json"):
-        """Save locations to JSON file with statistics"""
+    def save_locations(self, locations, filename="mandelbrot_locations.json", save_js=True):
+        """Save locations to JSON file with statistics and optionally as JS"""
         # Calculate statistics
-        difficulties = [loc["difficulty"] for loc in locations]
-        scores = [loc["score"] for loc in locations]
-
+        zoom_values = [loc["zoom"] for loc in locations]
+        entropy_values = [loc.get("entropy", 0) for loc in locations]
+        
         stats = {
             "total_locations": len(locations),
-            "difficulty_distribution": {
-                i: difficulties.count(i) for i in range(1, 6)
+            "zoom_range": {
+                "min": min(zoom_values),
+                "max": max(zoom_values),
+                "mean": np.mean(zoom_values)
             },
-            "average_score": np.mean(scores),
-            "score_range": [min(scores), max(scores)]
+            "entropy_range": {
+                "min": min(entropy_values),
+                "max": max(entropy_values),
+                "mean": np.mean(entropy_values)
+            }
         }
 
         data = {
@@ -228,8 +163,34 @@ class MandelbrotLocationFinder:
             json.dump(data, f, indent=2)
 
         print(f"\nSaved {len(locations)} locations to {filename}")
-        print(f"Difficulty distribution: {stats['difficulty_distribution']}")
-        print(f"Average score: {stats['average_score']:.3f}")
+        print(f"Zoom range: {stats['zoom_range']['min']:.0f}x - {stats['zoom_range']['max']:.0f}x (avg: {stats['zoom_range']['mean']:.0f}x)")
+        print(f"Entropy range: {stats['entropy_range']['min']:.2f} - {stats['entropy_range']['max']:.2f} (avg: {stats['entropy_range']['mean']:.2f})")
+        
+        # Also save as JS if requested (integrating convert.py functionality)
+        if save_js:
+            self.save_locations_js(locations)
+    
+    def save_locations_js(self, locations, filename="locations.js"):
+        """Save locations as JavaScript file for web game"""
+        js_content = "// Auto-generated Mandelbrot locations\n"
+        js_content += "const MANDELBROT_LOCATIONS = [\n"
+        
+        for i, loc in enumerate(locations):
+            js_content += "  {\n"
+            js_content += f"    x: {loc['x']},\n"
+            js_content += f"    y: {loc['y']},\n"
+            js_content += f"    zoom: {loc['zoom']}\n"
+            js_content += "  }"
+            if i < len(locations) - 1:
+                js_content += ","
+            js_content += "\n"
+        
+        js_content += "];\n"
+        
+        with open(filename, 'w') as f:
+            f.write(js_content)
+        
+        print(f"Saved {len(locations)} locations to {filename} for web game")
 
     def visualize_locations_grid(self, locations, num_samples=9, resolution=(256, 256)):
         """Visualize multiple locations in a grid"""
@@ -240,15 +201,13 @@ class MandelbrotLocationFinder:
         fig, axes = plt.subplots(rows, cols, figsize=(12, 4*rows))
         axes = axes.flatten() if num_samples > 1 else [axes]
 
-        # Sample locations from different difficulty levels
-        sampled_locations = []
-        for difficulty in range(1, 6):
-            diff_locs = [loc for loc in locations if loc["difficulty"] == difficulty]
-            if diff_locs:
-                sampled_locations.extend(random.sample(diff_locs,
-                                       min(2, len(diff_locs))))
-
-        sampled_locations = sampled_locations[:num_samples]
+        # Sample locations evenly distributed by score
+        if len(locations) <= num_samples:
+            sampled_locations = locations
+        else:
+            # Sample evenly across the score range
+            indices = np.linspace(0, len(locations)-1, num_samples, dtype=int)
+            sampled_locations = [locations[i] for i in indices]
 
         print("\nGenerating visualizations...")
         for idx, (ax, location) in enumerate(tqdm(zip(axes[:num_samples], sampled_locations))):
@@ -263,9 +222,22 @@ class MandelbrotLocationFinder:
 
             mandelbrot = self.calculate_mandelbrot(xmin, xmax, ymin, ymax, width, height)
 
-            im = ax.imshow(mandelbrot, cmap='hot', extent=[xmin, xmax, ymin, ymax])
-            ax.set_title(f'Diff: {location["difficulty"]}, Zoom: {location["zoom"]:.1f}x\n'
-                        f'Score: {location["score"]:.3f}', fontsize=10)
+            # Create custom colormap for better visualization
+            # Normalize values and apply log scale for gradients
+            normalized = mandelbrot / self.max_iterations
+            # Apply sqrt scale for better visualization (less aggressive than log)
+            sqrt_scaled = np.sqrt(normalized)
+            
+            # Use a perceptually uniform colormap
+            im = ax.imshow(sqrt_scaled, cmap='twilight_shifted', extent=[xmin, xmax, ymin, ymax])
+            
+            # Build title with available metrics
+            title_parts = [f'Zoom: {location["zoom"]:.0f}x']
+            if 'entropy' in location:
+                title_parts.append(f'Entropy: {location["entropy"]:.2f}')
+            if 'edge_density' in location:
+                title_parts.append(f'Edges: {location["edge_density"]:.1%}')
+            ax.set_title('\n'.join(title_parts), fontsize=10)
             ax.axis('off')
 
         # Hide empty subplots
@@ -298,15 +270,28 @@ def benchmark_search_speed():
         print(f"  Rate: {len(locations)/elapsed:.1f} locations/second")
 
 def main():
-    # Create finder instance with parallel processing
+    # Create finder instance
     finder = MandelbrotLocationFinder(max_iterations=100)
 
-    # Find interesting locations
-    print("Searching for interesting Mandelbrot locations...")
-    locations = finder.find_interesting_locations_parallel(num_locations=1000)
+    # Generate uniform locations for web game
+    # Match nn/config.py: zoom range 3-4 (10^3 to 10^4 = 1,000x to 10,000x)
+    # This creates interesting, complex views of the Mandelbrot set
+    print("Generating unbiased Mandelbrot locations for web game...")
+    print("\nZoom explanation:")
+    print("  - Zoom 1 = full Mandelbrot set view")
+    print("  - Zoom 10 = 10x magnification")
+    print("  - Zoom 1,000 = 1000x magnification (seeing fine details)")
+    print("  - Zoom 10,000 = 10000x magnification (deep zoom, intricate patterns)")
+    
+    locations = finder.find_uniform_locations(
+        num_locations=1000, 
+        zoom_range=config.ZOOM_RANGE_TRAIN,  # Use (3, 4) from config
+        min_entropy=3.5,
+        min_edge_density=0.05
+    )
 
-    # Save to file
-    finder.save_locations(locations)
+    # Save as both JSON and JavaScript (integrated convert.py functionality)
+    finder.save_locations(locations, save_js=True)
 
     # Visualize sample locations in a grid
     print("\nVisualizing sample locations...")

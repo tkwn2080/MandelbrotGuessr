@@ -143,6 +143,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "mlx" },
     { name = "numpy" },
     { name = "scipy" },
     { name = "tqdm" },
@@ -151,6 +152,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "mlx", specifier = ">=0.26.5" },
     { name = "numpy", specifier = ">=2.3.1" },
     { name = "scipy", specifier = ">=1.16.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
@@ -191,6 +193,34 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/c7/473bc559beec08ebee9f86ca77a844b65747e1a6c2691e8c92e40b9f42a8/matplotlib-3.10.3-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f6929fc618cb6db9cb75086f73b3219bbb25920cb24cee2ea7a12b04971a4158", size = 8618082 },
     { url = "https://files.pythonhosted.org/packages/d8/e9/6ce8edd264c8819e37bbed8172e0ccdc7107fe86999b76ab5752276357a4/matplotlib-3.10.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:6c7818292a5cc372a2dc4c795e5c356942eb8350b98ef913f7fda51fe175ac5d", size = 9413699 },
     { url = "https://files.pythonhosted.org/packages/1b/92/9a45c91089c3cf690b5badd4be81e392ff086ccca8a1d4e3a08463d8a966/matplotlib-3.10.3-cp313-cp313t-win_amd64.whl", hash = "sha256:4f23ffe95c5667ef8a2b56eea9b53db7f43910fa4a2d5472ae0f72b64deab4d5", size = 8139044 },
+]
+
+[[package]]
+name = "mlx"
+version = "0.26.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mlx-metal" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/86/6511ddb1a2ed944a7210709aafcc0c148c443f96790b359790b490d772e3/mlx-0.26.5-cp312-cp312-macosx_13_0_arm64.whl", hash = "sha256:a29a060d089906a8ce753d0cb605c9c20005ce1865ccde8d06ad91c8c4325dc7", size = 510746 },
+    { url = "https://files.pythonhosted.org/packages/50/af/7ce7d90fce96646d12b517dfb0c7a24914bfff815a412805568e42289e1f/mlx-0.26.5-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:d754e964c7c320c67f4a1a00d6d2d60c1eec8213b83ebe754702bf6dc51a36a4", size = 492448 },
+    { url = "https://files.pythonhosted.org/packages/52/c1/8193c3adb61debec85d72cd9315c0e753f4ffd64ff2a4000e0e7f1e2b001/mlx-0.26.5-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:77c5b750b24a18ed6e433dc46d787193b124a869b1b65d1532bfb7d37ec7172f", size = 492450 },
+    { url = "https://files.pythonhosted.org/packages/cf/35/9f60fd3a7b35f8fb58afd47c231f69d91bc13cfc5bef84094296fe204ae7/mlx-0.26.5-cp312-cp312-manylinux_2_34_x86_64.manylinux_2_35_x86_64.whl", hash = "sha256:9c2b5dc36c57c8e2fe2245ca8cb2db167d053395afd53979f18728e2311cd633", size = 581086 },
+    { url = "https://files.pythonhosted.org/packages/25/4d/97558bd1dcae9661674ca15d8318e696a0297a14c1c975142422bc1a4111/mlx-0.26.5-cp313-cp313-macosx_13_0_arm64.whl", hash = "sha256:538fa0d35173e163ea07fa30440f1e8f9194c87c0dde8e58872b5863a55f8ced", size = 510717 },
+    { url = "https://files.pythonhosted.org/packages/3a/f9/920d1b252832298b3661a4927d2a24264f2e0a84a0c3e3debe8f0e78f333/mlx-0.26.5-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:8eb957ad603114940ac9ed90b12d1b4c353e78d2458e788bfffed417c7b735b4", size = 492457 },
+    { url = "https://files.pythonhosted.org/packages/fa/c9/f51621f83108fa296b638dbe8e7ae8ed412931ccfa0e7e12ed4ca5ab8402/mlx-0.26.5-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:68d9f0466d7a2c88b3233a69248c3d7f8e5443ecfafcec2da13f04f6395469c6", size = 492457 },
+    { url = "https://files.pythonhosted.org/packages/95/21/cea8ef82af0d6fe0383492594769a80078528935ca7e01a018174d81b5ce/mlx-0.26.5-cp313-cp313-manylinux_2_34_x86_64.manylinux_2_35_x86_64.whl", hash = "sha256:108921cdb1247017d252313887d2cc7953e02c76383f0163c0eed11418605307", size = 580980 },
+]
+
+[[package]]
+name = "mlx-metal"
+version = "0.26.5"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/e6/85651e73eefee100a4f658dfa2636ff195cd957bc500baad17bbe2040ca6/mlx_metal-0.26.5-py3-none-macosx_13_0_arm64.whl", hash = "sha256:6e58b4ec234bd23d04b817642245832b5a5ac48d06ed26b97b4dc6dba5b40aa3", size = 33521560 },
+    { url = "https://files.pythonhosted.org/packages/22/6f/31075f8fb53d906bbc223e47f46b573e54624dea78c039ade2a2a7d1513d/mlx_metal-0.26.5-py3-none-macosx_14_0_arm64.whl", hash = "sha256:d6f6a7d1110562544978d6f87a5bbb47be293d3b85c742043f8f2048e9f387cf", size = 32924152 },
+    { url = "https://files.pythonhosted.org/packages/a6/a0/0e01714f94f3b0efe7f90581c4b27becba9df55d15fd562cbd45f3a6dec3/mlx_metal-0.26.5-py3-none-macosx_15_0_arm64.whl", hash = "sha256:f5bd394c7ff6eebaaf8db6d7bd4f8dec96f2d232f08ba641673ab66f22e9727b", size = 32895781 },
 ]
 
 [[package]]

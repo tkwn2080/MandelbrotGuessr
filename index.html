@@ -16,6 +16,7 @@
             background-color: #0a0a0a;
             color: #fff;
             overflow: hidden;
+            user-select: none;
         }
 
         #gameContainer {
@@ -70,30 +71,88 @@
         }
 
         #mainCanvas {
-            max-width: 90%;
-            max-height: 90%;
-            border: 2px solid #333;
+            width: 52vw;
+            height: 39vw;
+            max-width: 800px;
+            max-height: 600px;
+            border: 3px solid #ffd93d;
             cursor: crosshair;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 20px rgba(255, 217, 61, 0.3);
+        }
+
+        #mainCanvas.swapped {
+            width: 29.3vw;
+            height: 22vw;
+            max-width: 450px;
+            max-height: 338px;
+            cursor: default;
+        }
+
+        .canvas-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(26, 26, 26, 0.9);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #mainCanvas:hover + .canvas-label,
+        #minimap:hover .minimap-label {
+            opacity: 1;
         }
 
         #minimap {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            width: 300px;
-            height: 214px;
+            width: 29.3vw;
+            height: 20.9vw;
+            max-width: 450px;
+            max-height: 321px;
             border: 3px solid #4ecdc4;
             cursor: pointer;
             background-color: #000;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(78, 205, 196, 0.3);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 5;
         }
 
         #minimap.expanded {
-            width: 750px !important;
-            height: 535px !important;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            width: 52vw !important;
+            height: 39vw !important;
+            max-width: 800px !important;
+            max-height: 600px !important;
+            position: fixed !important;
+            top: 50% !important;
+            left: 33% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+            box-shadow: 0 8px 40px rgba(78, 205, 196, 0.5);
+            z-index: 20;
+        }
+
+        .minimap-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(26, 26, 26, 0.9);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: #4ecdc4;
         }
 
         #minimapControls {
@@ -117,6 +176,7 @@
             font-size: 18px;
             background-color: rgba(78, 205, 196, 0.8);
             border-radius: 3px;
+            transition: all 0.3s ease;
         }
 
         .minimapBtn:hover {
@@ -133,6 +193,55 @@
 
         #minimap:hover #expandBtn {
             opacity: 1;
+        }
+
+        #mainCanvasWrapper {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed;
+            top: 50%;
+            left: 33%;
+            transform: translate(-50%, -50%);
+            display: inline-block;
+        }
+
+        #mainCanvasWrapper.swapped {
+            position: fixed;
+            top: auto;
+            left: auto;
+            bottom: 20px;
+            right: 20px;
+            transform: none;
+            z-index: 10;
+        }
+
+        #mainSwapBtn {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 18px;
+            background-color: rgba(255, 217, 61, 0.8);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            z-index: 15;
+        }
+
+        #mainCanvasWrapper:hover #mainSwapBtn,
+        #mainSwapBtn:hover {
+            opacity: 1;
+        }
+
+        #mainSwapBtn:hover {
+            background-color: #ffd93d;
+        }
+
+        #mainArea.swapped {
+            overflow: visible;
         }
 
 
@@ -267,15 +376,29 @@
 
         #guessMarker {
             position: absolute;
-            width: 10px;
-            height: 10px;
+            width: 16px;
+            height: 16px;
             background-color: #ff6b6b;
-            border: 2px solid #fff;
+            border: 3px solid #fff;
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
             display: none;
             z-index: 10;
+            box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.5);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.1);
+            }
+            100% {
+                box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.5);
+            }
         }
 
         #controls {
@@ -301,6 +424,11 @@
         button:hover {
             background-color: #45b3b0;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         button:disabled {
@@ -315,6 +443,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 1.5rem;
+            z-index: 25;
         }
 
         #result {
@@ -329,6 +458,7 @@
             display: none;
             min-width: 400px;
             border: 2px solid #4ecdc4;
+            z-index: 30;
         }
 
         #resultScore {
@@ -338,6 +468,18 @@
             background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: scoreAppear 0.5s ease-out;
+        }
+
+        @keyframes scoreAppear {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         #difficulty {
@@ -349,6 +491,7 @@
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-size: 0.9rem;
+            z-index: 25;
         }
 
         .diff-easy { color: #4ecdc4; }
@@ -356,18 +499,106 @@
         .diff-hard { color: #ffd93d; }
         .diff-veryhard { color: #ff6b6b; }
         .diff-extreme { color: #e74c3c; }
+
+        #mobileWarning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        #mobileWarning div {
+            background-color: #1a1a1a;
+            padding: 2rem;
+            border-radius: 15px;
+            border: 3px solid #ff6b6b;
+            max-width: 90%;
+        }
+
+        #mobileWarning h2 {
+            color: #ff6b6b;
+            margin-bottom: 1rem;
+        }
+
+        /* Ensure minimum sizes on smaller screens */
+        @media (max-width: 1200px) {
+            #mainCanvas {
+                width: 624px;
+                height: 468px;
+            }
+            
+            #mainCanvas.swapped {
+                width: 351px;
+                height: 264px;
+            }
+            
+            #minimap {
+                width: 351px;
+                height: 251px;
+            }
+            
+            #minimap.expanded {
+                width: 624px !important;
+                height: 468px !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #mobileWarning {
+                display: flex;
+            }
+            
+            #gameContainer, #startScreen, #gameOverScreen {
+                display: none !important;
+            }
+        }
+
+        .tooltip {
+            position: fixed;
+            background-color: rgba(26, 26, 26, 0.95);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+            border: 1px solid #4ecdc4;
+            white-space: nowrap;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
     </style>
     <script src="locations.js"></script>
 </head>
 <body>
+    <div id="mobileWarning">
+        <div>
+            <h2>Desktop Only</h2>
+            <p>MandelbrotGuessr requires a desktop computer for the best experience.</p>
+            <p>Please visit this site on a laptop or desktop computer to play.</p>
+        </div>
+    </div>
+
     <div id="startScreen">
         <div id="startContent">
             <h1>MandelbrotGuessr</h1>
             
             <div class="instructions">
                 <p>• 5 rounds, 60 seconds each</p>
-                <p>• Click to guess location, drag to pan</p>
+                <p>• Click minimap to guess location, drag to pan</p>
                 <p>• Scroll wheel to zoom</p>
+                <p>• Press Tab to swap views, Space to submit guess</p>
             </div>
             
             <input type="text" id="playerNameStart" placeholder="Name (optional)" maxlength="20" onkeypress="if(event.key==='Enter') startGame()">
@@ -388,12 +619,15 @@
 
         <div id="mainArea">
             <div id="loading">Loading...</div>
-            <canvas id="mainCanvas"></canvas>
+            <div id="mainCanvasWrapper">
+                <canvas id="mainCanvas"></canvas>
+                <button id="mainSwapBtn" class="swapBtn" onclick="toggleMinimapSize()">⇄</button>
+            </div>
 
             <div id="minimap">
                 <canvas id="minimapCanvas"></canvas>
                 <div id="guessMarker"></div>
-                <button id="expandBtn" class="minimapBtn" onclick="toggleMinimapSize()">⤢</button>
+                <button id="expandBtn" class="minimapBtn" onclick="toggleMinimapSize()">⇄</button>
                 <div id="minimapControls">
                     <button class="minimapBtn" onclick="zoomMinimap(1.5)">+</button>
                     <button class="minimapBtn" onclick="zoomMinimap(0.67)">-</button>
@@ -449,6 +683,10 @@
         const ROUNDS_PER_GAME = 5;
         const TIME_PER_ROUND = 60;
         
+        // WebGL renderers (initialized later)
+        let mainWebGL = null;
+        let minimapWebGL = null;
+        let useWebGL = false;
 
         // Canvas elements
         const mainCanvas = document.getElementById('mainCanvas');
@@ -466,6 +704,9 @@
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
         let dragStartBounds = null;
+        let animationFrameId = null;
+        let zoomAnimationActive = false;
+        let lastRenderTime = 0;
 
         // Mandelbrot calculation
         function calculateMandelbrot(xmin, xmax, ymin, ymax, width, height, maxIterations = 100) {
@@ -561,19 +802,36 @@
 
         // Render location
         function renderLocation(location) {
-            const width = 800;
-            const height = 600;
+            // Get actual rendered size from CSS
+            const rect = mainCanvas.getBoundingClientRect();
+            const width = Math.round(rect.width);
+            const height = Math.round(rect.height);
 
             mainCanvas.width = width;
             mainCanvas.height = height;
 
-            const xRange = 3.5 / location.zoom;
-            const yRange = 2.5 / location.zoom;
+            // Calculate bounds based on canvas aspect ratio
+            const canvasAspectRatio = width / height;
+            const baseRange = 3.0 / location.zoom;
+            let xRange, yRange;
+            
+            if (canvasAspectRatio >= 1) {
+                // Canvas is wider than tall
+                xRange = baseRange * canvasAspectRatio;
+                yRange = baseRange;
+            } else {
+                // Canvas is taller than wide
+                xRange = baseRange;
+                yRange = baseRange / canvasAspectRatio;
+            }
 
             const xmin = location.x - xRange / 2;
             const xmax = location.x + xRange / 2;
             const ymin = location.y - yRange / 2;
             const ymax = location.y + yRange / 2;
+            
+            // Store these bounds for the animation
+            location.viewBounds = { xmin, xmax, ymin, ymax, xRange, yRange };
 
             document.getElementById('loading').style.display = 'block';
 
@@ -597,17 +855,36 @@
             minimapCanvas.width = width;
             minimapCanvas.height = height;
 
-            // Use current minimap bounds
-            const imageData = calculateMandelbrot(
-                minimapBounds.xmin, 
-                minimapBounds.xmax, 
-                minimapBounds.ymin, 
-                minimapBounds.ymax, 
-                width, 
-                height, 
-                50
-            );
-            minimapCtx.putImageData(imageData, 0, 0);
+            // Calculate zoom level to adjust iterations
+            const currentRange = minimapBounds.xmax - minimapBounds.xmin;
+            const defaultRange = 3.5; // Full view x-range
+            const zoomLevel = defaultRange / currentRange;
+            
+            // Scale iterations based on zoom (more iterations for deeper zoom)
+            const iterations = Math.min(200, Math.max(50, Math.round(50 * Math.log10(zoomLevel + 1))));
+            
+            if (useWebGL && minimapWebGL) {
+                // Use WebGL renderer
+                minimapWebGL.render(
+                    minimapBounds.xmin, 
+                    minimapBounds.xmax, 
+                    minimapBounds.ymin, 
+                    minimapBounds.ymax,
+                    iterations
+                );
+            } else {
+                // Fallback to Canvas 2D
+                const imageData = calculateMandelbrot(
+                    minimapBounds.xmin, 
+                    minimapBounds.xmax, 
+                    minimapBounds.ymin, 
+                    minimapBounds.ymax, 
+                    width, 
+                    height, 
+                    iterations
+                );
+                minimapCtx.putImageData(imageData, 0, 0);
+            }
         }
 
         // Zoom minimap
@@ -640,23 +917,61 @@
         function toggleMinimapSize() {
             minimapExpanded = !minimapExpanded;
             const minimap = document.getElementById('minimap');
+            const mainCanvas = document.getElementById('mainCanvas');
+            const mainCanvasWrapper = document.getElementById('mainCanvasWrapper');
+            const mainArea = document.getElementById('mainArea');
+            const expandBtn = document.getElementById('expandBtn');
+            const mainSwapBtn = document.getElementById('mainSwapBtn');
             
             if (minimapExpanded) {
-                // Triple the baseline size
+                // Add expanded class and swap positions
                 minimap.classList.add('expanded');
+                mainCanvas.classList.add('swapped');
+                mainCanvasWrapper.classList.add('swapped');
+                mainArea.classList.add('swapped');
+                expandBtn.innerHTML = '⇄';
+                expandBtn.style.transform = 'rotate(180deg)';
+                mainSwapBtn.innerHTML = '⇄';
+                mainSwapBtn.style.transform = 'rotate(180deg)';
+                
+                // Add labels
+                if (!document.querySelector('.canvas-label')) {
+                    const mainLabel = document.createElement('div');
+                    mainLabel.className = 'canvas-label';
+                    mainLabel.textContent = 'Target Location';
+                    mainLabel.style.color = '#ffd93d';
+                    mainCanvasWrapper.parentNode.insertBefore(mainLabel, mainCanvasWrapper.nextSibling);
+                    
+                    const minimapLabel = document.createElement('div');
+                    minimapLabel.className = 'minimap-label';
+                    minimapLabel.textContent = 'Click to Place Your Guess';
+                    minimap.appendChild(minimapLabel);
+                }
             } else {
-                // Return to baseline (will still double on hover)
+                // Return to normal positions
                 minimap.classList.remove('expanded');
+                mainCanvas.classList.remove('swapped');
+                mainCanvasWrapper.classList.remove('swapped');
+                mainArea.classList.remove('swapped');
+                expandBtn.innerHTML = '⇄';
+                expandBtn.style.transform = 'rotate(0deg)';
+                mainSwapBtn.innerHTML = '⇄';
+                mainSwapBtn.style.transform = 'rotate(0deg)';
+                
+                // Remove labels
+                const labels = document.querySelectorAll('.canvas-label, .minimap-label');
+                labels.forEach(label => label.remove());
             }
             
-            // Re-render to adjust to new size
+            // Re-render both canvases to adjust to new sizes
             setTimeout(() => {
+                renderLocation(currentLocation);
                 renderMinimap();
                 // Redraw guess marker if present
                 if (currentGuess && document.getElementById('guessMarker').style.display === 'block') {
                     updateGuessMarkerPosition();
                 }
-            }, 350); // Wait for CSS transition
+            }, 550); // Wait for CSS transition
         }
 
         // Update guess marker position
@@ -734,7 +1049,11 @@
                 minimapBounds.ymin = dragStartBounds.ymin - dy * height;
                 minimapBounds.ymax = dragStartBounds.ymax - dy * height;
 
-                renderMinimap();
+                // Throttle rendering while dragging for performance
+                if (!isDragging || Date.now() - lastRenderTime > 50) {
+                    renderMinimap();
+                    lastRenderTime = Date.now();
+                }
                 // Update marker position while panning
                 if (currentGuess && document.getElementById('guessMarker').style.display === 'block') {
                     updateGuessMarkerPosition();
@@ -764,11 +1083,17 @@
 
                 currentGuess = { x: mandX, y: mandY };
 
-                // Update marker position
+                // Update marker position with click feedback
                 const marker = document.getElementById('guessMarker');
                 marker.style.left = x + 'px';
                 marker.style.top = y + 'px';
                 marker.style.display = 'block';
+                
+                // Visual click feedback
+                marker.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                setTimeout(() => {
+                    marker.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 200);
             }
             
             isDragging = false;
@@ -830,30 +1155,40 @@
             const dy = currentGuess.y - currentLocation.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            // Also check symmetrical position across x-axis (Mandelbrot is symmetric horizontally)
-            const dySymmetric = currentGuess.y - (-currentLocation.y);
-            const distanceSymmetric = Math.sqrt(dx * dx + dySymmetric * dySymmetric);
+            // Calculate score with more variety and normalized by zoom level
+            const maxScore = 10000;
             
-            // Use the smaller distance (could be the symmetric guess)
-            const minDistance = Math.min(distance, distanceSymmetric);
+            // Normalize distance by the zoom level to make scores comparable
+            // At higher zoom, the same pixel distance represents a smaller actual distance
+            const normalizedDistance = distance * currentLocation.zoom;
+            
+            // Use a steep exponential decay for scoring
+            // This makes you need to be quite accurate for high scores
+            const decayFactor = 200; // Balanced - not too harsh, not too generous
+            const scoreRatio = Math.exp(-normalizedDistance / decayFactor);
+            
+            // Calculate score without a minimum floor - let it decay naturally
+            let finalScore = maxScore * scoreRatio;
+            
+            // Round to integer for scores >= 1, but allow decimals for scores < 1
+            if (finalScore >= 1) {
+                finalScore = Math.round(finalScore);
+            } else if (finalScore > 0) {
+                // Keep 2 decimal places for fractional scores
+                finalScore = Math.round(finalScore * 100) / 100;
+            } else {
+                // Ensure at least 0.01 points (not 0)
+                finalScore = 0.01;
+            }
+            
+            // Console log for debugging
+            console.log(`Distance: ${distance.toFixed(6)}, Zoom: ${currentLocation.zoom}, Normalized: ${normalizedDistance.toFixed(2)}, Score: ${finalScore}`);
 
-            // Calculate score based on absolute distance, not relative to zoom
-            // This way zooming in doesn't penalize you
-            const maxScore = 5000;
-            
-            // Use a scoring curve based on the actual zoom level of the location
-            // Higher zoom locations are harder, so give more leeway
-            const difficultyFactor = Math.log10(currentLocation.zoom + 1);
-            const scoringDistance = minDistance * 1000; // Scale up for better granularity
-            
-            // Adjust scoring curve based on zoom difficulty
-            const score = Math.max(0, Math.round(maxScore * Math.exp(-scoringDistance / difficultyFactor)));
-
-            totalScore += score;
+            totalScore += finalScore;
             document.getElementById('scoreValue').textContent = totalScore;
 
             // Show result
-            showResult(score, minDistance);
+            showResult(finalScore, distance);
 
             // Update buttons
             document.getElementById('guessBtn').style.display = 'none';
@@ -869,45 +1204,269 @@
 
             resultScore.textContent = score;
 
-            if (score >= 4500) {
+            if (score >= 8000) {
                 resultText.textContent = "Perfect!";
-            } else if (score >= 3000) {
-                resultText.textContent = "Very close!";
+            } else if (score >= 5000) {
+                resultText.textContent = "Excellent!";
+            } else if (score >= 2000) {
+                resultText.textContent = "Very good!";
             } else if (score >= 1000) {
                 resultText.textContent = "Good guess";
+            } else if (score >= 500) {
+                resultText.textContent = "Not bad";
+            } else if (score >= 200) {
+                resultText.textContent = "Getting warmer...";
             } else {
-                resultText.textContent = "";
+                resultText.textContent = "Way off!";
             }
 
             distanceText.textContent = `Distance: ${distance.toFixed(6)} units`;
 
             resultDiv.style.display = 'block';
+            
+            // Hide the HTML guess marker during animation (we'll draw it on canvas)
+            document.getElementById('guessMarker').style.display = 'none';
 
             // Draw actual location on minimap (accounting for current minimap bounds)
+            const targetY = currentLocation.y;
             const actualX = ((currentLocation.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
-            const actualY = ((currentLocation.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+            const actualY = ((targetY - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
 
+            // If using WebGL, we need to switch to 2D context for overlay drawing
+            if (useWebGL && minimapWebGL) {
+                // Get the image from WebGL
+                const imageData = minimapWebGL.getImageData();
+                minimapCtx.putImageData(imageData, 0, 0);
+            }
+            
+            // Draw with pulsing animation effect
             minimapCtx.fillStyle = '#4ecdc4';
             minimapCtx.beginPath();
-            minimapCtx.arc(actualX, actualY, 5, 0, 2 * Math.PI);
+            minimapCtx.arc(actualX, actualY, 8, 0, 2 * Math.PI);
             minimapCtx.fill();
             minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 3;
+            minimapCtx.stroke();
+            
+            // Add outer ring for visibility
+            minimapCtx.strokeStyle = 'rgba(78, 205, 196, 0.5)';
             minimapCtx.lineWidth = 2;
+            minimapCtx.beginPath();
+            minimapCtx.arc(actualX, actualY, 12, 0, 2 * Math.PI);
             minimapCtx.stroke();
 
+            // Calculate guess position
+            const guessX = ((currentGuess.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
+            const guessY = ((currentGuess.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+            
             // Draw line between guess and actual
             minimapCtx.strokeStyle = '#fff';
             minimapCtx.lineWidth = 2;
             minimapCtx.beginPath();
-            const guessX = ((currentGuess.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
-            const guessY = ((currentGuess.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
             minimapCtx.moveTo(guessX, guessY);
             minimapCtx.lineTo(actualX, actualY);
+            minimapCtx.stroke();
+            
+            // Draw guess marker on canvas
+            minimapCtx.fillStyle = '#ff6b6b';
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 3;
+            minimapCtx.beginPath();
+            minimapCtx.arc(guessX, guessY, 6, 0, 2 * Math.PI);
+            minimapCtx.fill();
+            minimapCtx.stroke();
+            
+            // Animate zoom to show the mistake
+            animateZoomToTarget();
+        }
+
+        // Animate zoom to target location
+        function animateZoomToTarget() {
+            if (zoomAnimationActive) return;
+            zoomAnimationActive = true;
+            
+            // Save original bounds
+            const startBounds = { ...minimapBounds };
+            
+            // Define full view bounds
+            const fullBounds = {
+                xmin: -2.5,
+                xmax: 1.0,
+                ymin: -1.25,
+                ymax: 1.25
+            };
+            
+            // Calculate target bounds to exactly match the main view
+            // Always use the actual location
+            const targetY = currentLocation.y;
+            
+            // Calculate bounds accounting for actual canvas aspect ratio
+            const minimapRect = minimapCanvas.getBoundingClientRect();
+            const mainRect = mainCanvas.getBoundingClientRect();
+            
+            // Get the aspect ratio of the main canvas
+            const mainAspectRatio = mainRect.width / mainRect.height;
+            
+            // Calculate ranges based on the main canvas aspect ratio
+            const baseRange = 3.0 / currentLocation.zoom;
+            let xRange, yRange;
+            
+            if (mainAspectRatio >= 1) {
+                // Main canvas is wider than tall
+                xRange = baseRange * mainAspectRatio;
+                yRange = baseRange;
+            } else {
+                // Main canvas is taller than wide
+                xRange = baseRange;
+                yRange = baseRange / mainAspectRatio;
+            }
+            
+            const targetBounds = {
+                xmin: currentLocation.x - xRange / 2,
+                xmax: currentLocation.x + xRange / 2,
+                ymin: targetY - yRange / 2,
+                ymax: targetY + yRange / 2
+            };
+            
+            // Calculate zoom duration based on zoom depth
+            const startZoomLevel = Math.max(
+                3.5 / (startBounds.xmax - startBounds.xmin),
+                2.5 / (startBounds.ymax - startBounds.ymin)
+            );
+            const targetZoomLevel = currentLocation.zoom;
+            
+            // Calculate zoom ratio (how many orders of magnitude we're zooming)
+            const zoomRatio = Math.log10(targetZoomLevel / startZoomLevel);
+            
+            // Base durations
+            const baseZoomOutDuration = 800;
+            const basePauseDuration = 1200; // Longer pause to see markers
+            const baseZoomInDuration = 1200;
+            
+            // Scale zoom-in duration based on zoom depth (min 1.2s, max 4s)
+            const zoomInDuration = Math.min(4000, Math.max(baseZoomInDuration, baseZoomInDuration + zoomRatio * 500));
+            const zoomOutDuration = baseZoomOutDuration;
+            const pauseDuration = basePauseDuration;
+            const duration = zoomOutDuration + pauseDuration + zoomInDuration;
+            
+            let startTime = null;
+            
+            function animate(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const elapsed = timestamp - startTime;
+                
+                let showMarkers = false;
+                
+                if (elapsed < zoomOutDuration) {
+                    // Phase 1: Zoom out to full view - SHOW MARKERS
+                    const progress = elapsed / zoomOutDuration;
+                    const easeProgress = easeInOutCubic(progress);
+                    
+                    minimapBounds.xmin = lerp(startBounds.xmin, fullBounds.xmin, easeProgress);
+                    minimapBounds.xmax = lerp(startBounds.xmax, fullBounds.xmax, easeProgress);
+                    minimapBounds.ymin = lerp(startBounds.ymin, fullBounds.ymin, easeProgress);
+                    minimapBounds.ymax = lerp(startBounds.ymax, fullBounds.ymax, easeProgress);
+                    showMarkers = true;
+                } else if (elapsed < zoomOutDuration + pauseDuration) {
+                    // Phase 2: Pause at full view - SHOW MARKERS
+                    minimapBounds = { ...fullBounds };
+                    showMarkers = true;
+                } else if (elapsed < duration) {
+                    // Phase 3: Zoom in to target - NO MARKERS
+                    const zoomProgress = (elapsed - zoomOutDuration - pauseDuration) / zoomInDuration;
+                    const easeProgress = easeInOutCubic(Math.min(zoomProgress, 1));
+                    
+                    minimapBounds.xmin = lerp(fullBounds.xmin, targetBounds.xmin, easeProgress);
+                    minimapBounds.xmax = lerp(fullBounds.xmax, targetBounds.xmax, easeProgress);
+                    minimapBounds.ymin = lerp(fullBounds.ymin, targetBounds.ymin, easeProgress);
+                    minimapBounds.ymax = lerp(fullBounds.ymax, targetBounds.ymax, easeProgress);
+                }
+                
+                // Render Mandelbrot
+                renderMinimap();
+                // Draw markers only during pause phase
+                drawResultMarkers(showMarkers);
+                
+                if (elapsed < duration) {
+                    animationFrameId = requestAnimationFrame(animate);
+                } else {
+                    zoomAnimationActive = false;
+                    animationFrameId = null;
+                }
+            }
+            
+            animationFrameId = requestAnimationFrame(animate);
+        }
+        
+        // Helper functions for animation
+        function lerp(start, end, t) {
+            return start + (end - start) * t;
+        }
+        
+        function easeInOutCubic(t) {
+            return t < 0.5 
+                ? 4 * t * t * t 
+                : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+        
+        // Draw result markers during animation
+        function drawResultMarkers(showMarkers = true) {
+            if (!currentGuess || !currentLocation) return;
+            
+            // If using WebGL, we need to get the rendered image first
+            if (useWebGL && minimapWebGL) {
+                const imageData = minimapWebGL.getImageData();
+                minimapCtx.putImageData(imageData, 0, 0);
+            }
+            
+            // Only draw markers if requested (during pause phase)
+            if (!showMarkers) return;
+            
+            // Calculate positions - always use actual location
+            const targetY = currentLocation.y;
+            const actualX = ((currentLocation.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
+            const actualY = ((targetY - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+            const guessX = ((currentGuess.x - minimapBounds.xmin) / (minimapBounds.xmax - minimapBounds.xmin)) * minimapCanvas.width;
+            const guessY = ((currentGuess.y - minimapBounds.ymin) / (minimapBounds.ymax - minimapBounds.ymin)) * minimapCanvas.height;
+            
+            // Draw line
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 2;
+            minimapCtx.setLineDash([5, 5]);
+            minimapCtx.beginPath();
+            minimapCtx.moveTo(guessX, guessY);
+            minimapCtx.lineTo(actualX, actualY);
+            minimapCtx.stroke();
+            minimapCtx.setLineDash([]);
+            
+            // Draw actual location marker
+            minimapCtx.fillStyle = '#4ecdc4';
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 3;
+            minimapCtx.beginPath();
+            minimapCtx.arc(actualX, actualY, 8, 0, 2 * Math.PI);
+            minimapCtx.fill();
+            minimapCtx.stroke();
+            
+            // Draw guess marker
+            minimapCtx.fillStyle = '#ff6b6b';
+            minimapCtx.strokeStyle = '#fff';
+            minimapCtx.lineWidth = 3;
+            minimapCtx.beginPath();
+            minimapCtx.arc(guessX, guessY, 6, 0, 2 * Math.PI);
+            minimapCtx.fill();
             minimapCtx.stroke();
         }
 
         // Next location
         function nextLocation() {
+            // Cancel any ongoing animation
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+                zoomAnimationActive = false;
+            }
+            
             roundNumber++;
             document.getElementById('roundValue').textContent = roundNumber + 1;
 
@@ -926,7 +1485,8 @@
             currentGuess = null;
             currentLocation = locations[roundNumber];
 
-            renderMinimap();
+            // Reset minimap to full view for next round
+            resetMinimap();
             renderLocation(currentLocation);
             startTimer();
         }
@@ -963,6 +1523,9 @@
             resetMinimap(); // Reset minimap to full view
             renderLocation(currentLocation);
             startTimer();
+            
+            // Show tooltip for first-time players
+            setTimeout(() => showFirstTimeTooltip(), 1000);
         }
 
         // Timer functions
@@ -1085,8 +1648,22 @@
         }
 
         // Global keyboard handler
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        document.addEventListener('keydown', (e) => {
+            // Tab to toggle minimap expansion
+            if (e.key === 'Tab' && gameActive && !document.getElementById('startScreen').style.display && 
+                !document.getElementById('gameOverScreen').style.display) {
+                e.preventDefault();
+                toggleMinimapSize();
+            }
+            // Space to make guess
+            else if (e.key === ' ' && gameActive && !document.getElementById('startScreen').style.display && 
+                     !document.getElementById('gameOverScreen').style.display && 
+                     document.getElementById('guessBtn').style.display !== 'none') {
+                e.preventDefault();
+                makeGuess();
+            }
+            // Enter for various actions
+            else if (e.key === 'Enter') {
                 // During gameplay
                 if (gameActive && !document.getElementById('startScreen').style.display && 
                     !document.getElementById('gameOverScreen').style.display) {
@@ -1109,8 +1686,68 @@
             }
         });
 
+        // Touch support for minimap
+        minimapCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            minimapCanvas.dispatchEvent(mouseEvent);
+        });
+
+        minimapCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            minimapCanvas.dispatchEvent(mouseEvent);
+        });
+
+        minimapCanvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            minimapCanvas.dispatchEvent(mouseEvent);
+        });
+
+        // Show tooltip on first game
+        function showFirstTimeTooltip() {
+            if (localStorage.getItem('mandelbrotTooltipShown')) return;
+            
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = 'Click the blue map to place your guess!';
+            document.body.appendChild(tooltip);
+            
+            const minimap = document.getElementById('minimap');
+            const rect = minimap.getBoundingClientRect();
+            tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+            tooltip.style.top = rect.top - 40 + 'px';
+            
+            setTimeout(() => tooltip.classList.add('show'), 500);
+            setTimeout(() => {
+                tooltip.classList.remove('show');
+                setTimeout(() => tooltip.remove(), 300);
+                localStorage.setItem('mandelbrotTooltipShown', 'true');
+            }, 4000);
+        }
+
         // Initialize game
         window.onload = async () => {
+            // Initialize WebGL renderers
+            try {
+                mainWebGL = new MandelbrotWebGL(mainCanvas);
+                minimapWebGL = new MandelbrotWebGL(minimapCanvas);
+                useWebGL = true;
+                console.log('WebGL initialized successfully');
+            } catch (e) {
+                console.warn('WebGL initialization failed, falling back to Canvas 2D:', e);
+                useWebGL = false;
+            }
+            
             await initializeLocations();
             // Show start screen and wait for player
             document.getElementById('startScreen').style.display = 'flex';
