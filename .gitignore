@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# Neural network models (but keep datasets)
+nn/models/
+
+# Generated visualizations
+*.png
+!assets/*.png  # Allow PNG files in assets directory if you have one
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Local configuration
+.env
+.env.local
+
+# Log files
+*.log
