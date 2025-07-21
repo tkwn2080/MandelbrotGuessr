@@ -106,7 +106,7 @@ class MandelbrotWebGL {
                         smooth_iter = float(iteration) + 1.0 - nu;
                     }
                     
-                    float hue = mod(smooth_iter * 10.0 + u_colorOffset, 360.0);
+                    float hue = mod(smooth_iter / float(u_maxIterations) * 360.0 + u_colorOffset, 360.0);
                     vec3 color = hslToRgb(hue, 100.0, 50.0);
                     gl_FragColor = vec4(color, 1.0);
                 }
