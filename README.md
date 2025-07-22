@@ -1,143 +1,120 @@
 # MandelbrotGuessr
 
-A GeoGuessr-style game where players guess their location within the Mandelbrot set! Players are shown a zoomed-in view of the fractal and must click on a minimap to guess where they are.
+A game where players guess locations in the Mandelbrot set, paired with a neural network that learns to play using reinforcement learning-style training.
 
-## Features
+## The Game (`index.html`)
 
-- 🎮 Interactive gameplay with scoring system
-- 🗺️ Clickable minimap for making guesses
-- 🎯 Difficulty levels from Easy (zoomed out) to Extreme (deep zoom)
-- 🎨 Beautiful color-coded Mandelbrot visualizations
-- 📊 Automatic location generation based on entropy and edge detection
-- 🚀 Runs entirely in the browser - perfect for GitHub Pages
+MandelbrotGuessr is a browser-based game inspired by GeoGuessr. Players are shown a zoomed-in view of the Mandelbrot set and must click on a minimap to guess where in the fractal they are looking.
 
-## Setup Instructions
+### Game Mechanics
+- **5 rounds** per game, 60 seconds each
+- **Main view**: Shows the target location at various zoom levels
+- **Minimap**: Interactive map where players click to guess
+  - Pan by dragging
+  - Zoom with scroll wheel
+  - Click to place guess
+- **Scoring**: Based on distance between guess and actual location
+  - Score = 10,000 � exp(-distance / 0.3)
+  - Maximum: 10,000 points (perfect guess)
+  - Minimum: 0.01 points (very far off)
 
-### 1. Generate Interesting Locations
+### Key Features
+- WebGL acceleration for smooth fractal rendering
+- Swappable views (Tab key)
+- Visual feedback showing guess accuracy
+- Local high score tracking
+- Responsive zoom animations
 
-First, run the Python script to generate a collection of interesting Mandelbrot locations:
+## Neural Network (`nn/`)
 
+A convolutional neural network that learns to play MandelbrotGuessr using a unique reinforcement learning approach.
+
+### Architecture (`model.py`)
+
+**MandelbrotCNN**: Resolution-agnostic CNN with global average pooling
+- Feature extraction: Conv blocks with batch normalization
+- Output: 5 values for ScreenLoss mode
+  1. View center X (normalized)
+  2. View center Y (normalized)  
+  3. Log10(zoom)
+  4. Click X position (0-1)
+  5. Click Y position (0-1)
+
+### Loss Function: ScreenLoss
+
+Instead of traditional supervised learning, the model optimizes game score directly:
+
+```python
+# Simulates human gameplay:
+1. Model selects view center and zoom
+2. Model clicks within that view (pixel-limited)
+3. Score calculated from final distance
+4. Loss = -mean(game_scores)
+```
+
+Key innovations:
+- **Pixel discretization**: Simulates human clicking limitations (800�600 pixels)
+- **View selection**: Model must choose where to look AND where to click
+- **Zoom emerges naturally**: High zoom needed for precision due to pixel constraints
+
+### Training (`train.py`)
+
+- Uses MLX framework (optimized for Apple Silicon)
+- Direct game score optimization (RL-style)
+- Gradient clipping for stability
+- Early stopping with patience
+
+### Data Generation (`data.py`, `utils.py`)
+
+- Uniform sampling across Mandelbrot set
+- Full complex plane coverage (-2.5 to 1.0, -1.25 to 1.25)
+- Quality filtering using entropy and edge detection
+- Multiple zoom levels (10� to 100,000�)
+
+### Evaluation (`eval.py`)
+
+Comprehensive evaluation including:
+- Game score metrics
+- Strategy analysis (zoom distribution, click patterns)
+- Gaming behavior detection
+- Visualization of model decisions
+
+## Key Insights
+
+1. **Reinforcement Learning Approach**: The model optimizes game score directly rather than minimizing coordinate prediction error
+2. **Emergent Behavior**: Zoom strategy emerges from pixel constraints, not explicit programming
+3. **Human-like Constraints**: Pixel discretization forces the model to face the same precision/coverage tradeoffs as humans
+4. **Imperfect Centering**: Model learns that perfect view centering doesn't improve score, focusing effort on final click accuracy
+
+## Setup
+
+### Game
+Simply open `index.html` in a modern web browser (desktop only).
+
+### Neural Network
 ```bash
-# Install required dependencies
-pip install numpy scipy matplotlib
+# Install dependencies
+pip install -r requirements.txt  # or use uv
 
-# Generate locations
-python mandelbrot_location_generator.py
+# Generate training data
+python nn/data.py --samples 10000
+
+# Train model
+python nn/train.py --loss screen --epochs 50
+
+# Evaluate
+python nn/eval.py --model nn/models/320x240/best_model.npz
 ```
 
-This will create a `mandelbrot_locations.json` file with 100 interesting locations.
+## Future Directions
 
-### 2. Convert Locations for Web
-
-Convert the JSON locations to a JavaScript file:
-
-```bash
-python location_converter.py
-```
-
-This creates `locations.js` that the web game can load.
-
-### 3. Deploy to GitHub Pages
-
-1. Create a new GitHub repository
-2. Add these files to your repository:
-   - `index.html` (the game file)
-   - `locations.js` (generated locations)
-
-3. Enable GitHub Pages:
-   - Go to Settings → Pages
-   - Set source to "Deploy from a branch"
-   - Select "main" branch and "/ (root)" folder
-   - Save
-
-4. Your game will be available at:
-   ```
-   https://[your-username].github.io/[repository-name]/
-   ```
-
-## File Structure
-
-```
-mandelbrot-guessr/
-├── index.html                    # Main game file
-├── locations.js                  # Generated locations (created by converter)
-├── mandelbrot_location_generator.py  # Python script to find locations
-├── location_converter.py         # Converts JSON to JS
-├── mandelbrot_locations.json    # Raw location data (generated)
-└── README.md                    # This file
-```
-
-## How the Location Generation Works
-
-The Python script uses several techniques to find interesting locations:
-
-1. **Entropy Calculation**: Measures the complexity of the image using Shannon entropy
-2. **Edge Detection**: Uses Sobel edge detection to find areas with lots of detail
-3. **Multi-scale Search**: Searches at different zoom levels from 1x to 10,000x
-4. **Interest Scoring**: Combines entropy and edge density to score locations
-
-## Game Mechanics
-
-- **Scoring**: Up to 5,000 points per round based on accuracy
-- **Distance**: Calculated in Mandelbrot coordinate space
-- **Difficulty**: Based on zoom level:
-  - Easy: 1-2x zoom
-  - Medium: 2-10x zoom
-  - Hard: 10-100x zoom
-  - Very Hard: 100-1000x zoom
-  - Extreme: 1000x+ zoom
-
-## Customization
-
-### Adding More Locations
-
-Edit `mandelbrot_location_generator.py` to:
-- Change the number of locations generated
-- Adjust the search regions
-- Modify the interest thresholds
-
-### Changing Colors
-
-In `index.html`, modify the `hslToRgb` function call:
-```javascript
-const hue = (iteration / maxIterations) * 360;
-const rgb = hslToRgb(hue, 100, 50);  // Adjust saturation and lightness
-```
-
-### Adjusting Difficulty
-
-Modify the scoring formula in `makeGuess()`:
-```javascript
-const score = Math.max(0, Math.round(maxScore * Math.exp(-distance * currentLocation.zoom / 10)));
-```
-
-## Performance Tips
-
-- The game renders at 800x600 resolution by default
-- Minimap uses reduced iterations (50) for faster rendering
-- Deep zoom locations may take a moment to render
-
-## Browser Compatibility
-
-Works in all modern browsers that support:
-- HTML5 Canvas
-- ES6 JavaScript
-- Async/await
-
-## Future Enhancements
-
-- [ ] Multiplayer mode
-- [ ] Daily challenges
-- [ ] Leaderboard system
-- [ ] More color schemes
-- [ ] Progressive zoom animation
-- [ ] Hints system
-- [ ] Mobile touch controls
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Credits
-
-Inspired by GeoGuessr and the mathematical beauty of the Mandelbrot set!
+- **Spatial Attention**: Adding attention mechanisms to help the model focus on distinctive fractal patterns
+- **Recurrent Search**: Implementing multi-step refinement where the model can:
+  - Make an initial guess and view that location
+  - Store visited locations in memory
+  - Iteratively refine its guess based on visual feedback
+  - Select a final answer after multiple exploration steps
+  - This would more closely mimic human search strategies
+- Higher resolution training
+- Deployment of trained model in the web game
+- Competitive play between human and AI

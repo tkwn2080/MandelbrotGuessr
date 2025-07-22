@@ -68,7 +68,7 @@ class MandelbrotCNN(nn.Module):
             nn.Linear(pool_output_size, hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.2),  # Reduced dropout
-            nn.Linear(hidden_dim, 3)  # Output: [x, y, log10_zoom]
+            nn.Linear(hidden_dim, 5)  # Output: [view_x, view_y, log10_zoom, click_x, click_y]
         ]
         
     def __call__(self, x):
@@ -143,14 +143,16 @@ class MandelbrotLoss(nn.Module):
 
 class ScreenLoss(nn.Module):
     """
-    Loss function that forces NN to predict in screen/pixel space.
-    This makes the NN need zoom for precision, just like human players.
+    Loss function that mimics human gameplay with view selection and pixel clicking.
     
     The NN predicts:
-    - screen_x, screen_y: normalized positions (0-1) on a virtual minimap
-    - log_zoom: zoom level to apply to that minimap
+    - view_center_x, view_center_y: Where to center the zoomed view (normalized)
+    - log_zoom: Zoom level for the view
+    - click_x, click_y: Where to click within that view (0-1 normalized)
     
-    These are converted to Mandelbrot coordinates with pixel discretization.
+    This forces the NN to:
+    1. Navigate to the right region (view center + zoom)
+    2. Click precisely within that region (pixel-limited)
     """
     
     def __init__(
@@ -172,68 +174,71 @@ class ScreenLoss(nn.Module):
         self.min_zoom = min_zoom
         self.max_zoom = max_zoom
         
-        # Full Mandelbrot view bounds
-        self.full_x_center = -0.75
-        self.full_y_center = 0.0
+        # Full Mandelbrot view parameters
         self.full_x_range = 3.5
         self.full_y_range = 2.5
         
-    def screen_to_coords(self, screen_x, screen_y, zoom):
-        """Convert screen space predictions to Mandelbrot coordinates."""
-        # Convert normalized screen coords to pixels
-        pixel_x = screen_x * self.minimap_width
-        pixel_y = screen_y * self.minimap_height
+    def view_and_click_to_coords(self, view_x, view_y, zoom, click_x, click_y):
+        """
+        Convert view center and click position to final Mandelbrot coordinates.
         
-        # Force to integer pixels (key limitation!)
-        pixel_x = mx.round(pixel_x)
-        pixel_y = mx.round(pixel_y)
+        Args:
+            view_x, view_y: Normalized view center coordinates
+            zoom: Zoom level (not log)
+            click_x, click_y: Normalized click position (0-1) within the view
+            
+        Returns:
+            Final Mandelbrot coordinates after pixel discretization
+        """
+        # Denormalize view center
+        view_center_x = view_x * ((config.X_MAX - config.X_MIN) / 2) + ((config.X_MIN + config.X_MAX) / 2)
+        view_center_y = view_y * config.Y_MAX
         
-        # Calculate what the minimap shows at this zoom
-        minimap_x_range = self.full_x_range / zoom
-        minimap_y_range = self.full_y_range / zoom
+        # Calculate visible range at this zoom
+        view_width = self.full_x_range / zoom
+        view_height = self.full_y_range / zoom
         
-        # Convert pixel position to Mandelbrot coordinates
-        # Pixel (400, 300) = center of minimap
-        x_coord = self.full_x_center + (pixel_x - self.minimap_width/2) * minimap_x_range / self.minimap_width
-        y_coord = self.full_y_center + (pixel_y - self.minimap_height/2) * minimap_y_range / self.minimap_height
+        # Convert click position to pixels
+        pixel_x = mx.round(click_x * self.minimap_width)
+        pixel_y = mx.round(click_y * self.minimap_height)
         
-        return x_coord, y_coord
+        # Convert pixels to offset from view center
+        # pixel (400, 300) = center of view (0 offset)
+        offset_x = (pixel_x - self.minimap_width/2) * view_width / self.minimap_width
+        offset_y = (pixel_y - self.minimap_height/2) * view_height / self.minimap_height
         
-    def coords_to_screen(self, x_coord, y_coord, zoom):
-        """Convert true coordinates to ideal screen position at given zoom."""
-        # What range would the minimap show?
-        minimap_x_range = self.full_x_range / zoom
-        minimap_y_range = self.full_y_range / zoom
+        # Final coordinates
+        final_x = view_center_x + offset_x
+        final_y = view_center_y + offset_y
         
-        # Where would this coordinate appear on screen?
-        pixel_x = (x_coord - self.full_x_center) * self.minimap_width / minimap_x_range + self.minimap_width/2
-        pixel_y = (y_coord - self.full_y_center) * self.minimap_height / minimap_y_range + self.minimap_height/2
-        
-        # Normalize to 0-1
-        return pixel_x / self.minimap_width, pixel_y / self.minimap_height
+        return final_x, final_y
         
     def __call__(self, pred, target, return_components=False):
         """
-        Calculate game score loss with screen-space predictions.
+        Calculate game score loss with view center and click position predictions.
         
         Args:
-            pred: [batch, 3] containing [screen_x_norm, screen_y_norm, log10_zoom]
-            target: [batch, 3] containing [x_norm, y_norm, log10_zoom] in coord space
+            pred: [batch, 5] containing [view_x, view_y, log10_zoom, click_x, click_y]
+            target: [batch, 3] containing [x_norm, y_norm, log10_zoom] of true location
             
         Returns:
             Loss value (negative mean game score)
         """
         # Extract predictions
-        pred_screen_x = pred[:, 0]  # 0-1 normalized
-        pred_screen_y = pred[:, 1]  # 0-1 normalized
-        pred_log_zoom = pred[:, 2]
-        pred_zoom = mx.power(10, pred_log_zoom)
+        pred_view_x = pred[:, 0]    # Normalized view center x
+        pred_view_y = pred[:, 1]    # Normalized view center y
+        pred_log_zoom = pred[:, 2]  # Log10 zoom
+        pred_click_x = pred[:, 3]   # Click position x (0-1)
+        pred_click_y = pred[:, 4]   # Click position y (0-1)
         
-        # Clip zoom
+        # Convert log zoom to linear
+        pred_zoom = mx.power(10, pred_log_zoom)
         pred_zoom = mx.clip(pred_zoom, self.min_zoom, self.max_zoom)
         
-        # Convert screen predictions to Mandelbrot coordinates
-        pred_x, pred_y = self.screen_to_coords(pred_screen_x, pred_screen_y, pred_zoom)
+        # Convert view + click to final coordinates
+        pred_x, pred_y = self.view_and_click_to_coords(
+            pred_view_x, pred_view_y, pred_zoom, pred_click_x, pred_click_y
+        )
         
         # Denormalize true coordinates
         true_x = target[:, 0] * ((config.X_MAX - config.X_MIN) / 2) + ((config.X_MIN + config.X_MAX) / 2)
@@ -243,31 +248,36 @@ class ScreenLoss(nn.Module):
         # Calculate distance in Mandelbrot space
         distance = mx.sqrt((pred_x - true_x)**2 + (pred_y - true_y)**2)
         
-        # Simple scoring - no zoom normalization needed!
-        # The pixel discretization naturally makes zoom necessary for precision
+        # Simple scoring - pixel discretization makes zoom necessary
         score_ratio = mx.exp(-distance / self.decay_factor)
         game_scores = self.max_score * score_ratio
         
         # Loss is negative score
         score_loss = -mx.mean(game_scores)
         
-        # Zoom regularization to prevent always max zoom
+        # Zoom regularization
         zoom_reg = self.zoom_regularization * mx.mean(pred_log_zoom**2)
         
-        total_loss = score_loss + zoom_reg
+        # Additional regularization: penalize extreme click positions
+        # Encourage clicking near center when possible
+        click_center_reg = 0.001 * mx.mean((pred_click_x - 0.5)**2 + (pred_click_y - 0.5)**2)
+        
+        total_loss = score_loss + zoom_reg + click_center_reg
         
         if return_components:
-            # Calculate ideal screen position for the target
-            ideal_screen_x, ideal_screen_y = self.coords_to_screen(true_x, true_y, pred_zoom)
-            screen_error = mx.sqrt((pred_screen_x - ideal_screen_x)**2 + (pred_screen_y - ideal_screen_y)**2)
+            # Calculate view center accuracy
+            view_center_x_denorm = pred_view_x * ((config.X_MAX - config.X_MIN) / 2) + ((config.X_MIN + config.X_MAX) / 2)
+            view_center_y_denorm = pred_view_y * config.Y_MAX
+            view_error = mx.sqrt((view_center_x_denorm - true_x)**2 + (view_center_y_denorm - true_y)**2)
             
             return {
                 'total_loss': total_loss,
                 'score_loss': score_loss,
                 'zoom_reg': zoom_reg,
+                'click_reg': click_center_reg,
                 'mean_score': mx.mean(game_scores),
                 'mean_distance': mx.mean(distance),
-                'mean_screen_error': mx.mean(screen_error),
+                'mean_view_error': mx.mean(view_error),
                 'mean_pred_zoom': mx.mean(pred_zoom)
             }
         

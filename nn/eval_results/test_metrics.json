@@ -1,0 +1,32 @@
+{
+  "split": "test",
+  "n_samples": 400,
+  "resolution": [
+    320,
+    240
+  ],
+  "model_type": "screen_loss",
+  "overall_coord_mae": 0.4375176727771759,
+  "overall_coord_rmse": 0.3539181351661682,
+  "overall_zoom_mae": 2.048475742340088,
+  "zoom_bias": -2.047257423400879,
+  "strategy": {
+    "zoom_median": 114.02790832519531,
+    "zoom_range": [
+      9.55535888671875,
+      20999.587890625
+    ],
+    "game_score_mean": 2076.6240234375,
+    "perfect_scores": 0,
+    "view_error_mean": 0.7058044672012329,
+    "click_center_bias": 0.13266544044017792
+  },
+  "gaming_behavior": {
+    "extreme_zoom": false,
+    "max_zoom_ratio": 0.0,
+    "suspicious_scores": false,
+    "perfect_score_ratio": 0.0,
+    "unnatural_precision": false,
+    "likely_gaming": false
+  }
+}

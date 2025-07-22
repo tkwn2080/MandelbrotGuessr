@@ -80,14 +80,22 @@ def evaluate(model, dataloader, loss_fn):
     total_zoom_error = 0
     n_batches = 0
     
+    is_screen_loss = isinstance(loss_fn, ScreenLoss)
+    
     for images, targets in dataloader:
         # Forward pass
         predictions = model(images)
         loss = loss_fn(predictions, targets)
         
-        # Calculate errors
-        coord_error = mx.mean(mx.abs(predictions[:, :2] - targets[:, :2]))
-        zoom_error = mx.mean(mx.abs(predictions[:, 2] - targets[:, 2]))
+        # Calculate errors based on loss type
+        if is_screen_loss:
+            # For ScreenLoss, measure view center accuracy
+            coord_error = mx.mean(mx.abs(predictions[:, :2] - targets[:, :2]))
+            zoom_error = mx.mean(mx.abs(predictions[:, 2] - targets[:, 2]))
+        else:
+            # For MandelbrotLoss, direct coordinate comparison  
+            coord_error = mx.mean(mx.abs(predictions[:, :2] - targets[:, :2]))
+            zoom_error = mx.mean(mx.abs(predictions[:, 2] - targets[:, 2]))
         
         total_loss += loss.item()
         total_coord_error += coord_error.item()
