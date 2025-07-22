@@ -11,18 +11,17 @@ import utils
 from model import MandelbrotCNN
 
 def calculate_game_score(predicted_x, predicted_y, predicted_zoom, 
-                        true_x, true_y, true_zoom, max_score=5000):
+                        true_x, true_y, true_zoom, max_score=10000):
     """
-    Calculate score using the same logic as the web game.
-    Matches the scoring system in index.html.
+    Calculate score using simple distance-based scoring.
+    No zoom normalization - the need for zoom emerges naturally from precision limits.
     """
-    # Calculate normalized distance by zoom level
-    zoom_factor = true_zoom
-    normalized_distance = np.sqrt((predicted_x - true_x)**2 + (predicted_y - true_y)**2) * zoom_factor
+    # Calculate raw distance
+    distance = np.sqrt((predicted_x - true_x)**2 + (predicted_y - true_y)**2)
     
-    # Exponential decay scoring with decayFactor = 200
-    decay_factor = 200
-    score_ratio = np.exp(-normalized_distance / decay_factor)
+    # Simple distance-based scoring without zoom normalization
+    decay_factor = 0.3  # Gentler decay for better score distribution
+    score_ratio = np.exp(-distance / decay_factor)
     
     # Calculate final score
     final_score = max_score * score_ratio
@@ -35,7 +34,7 @@ def calculate_game_score(predicted_x, predicted_y, predicted_zoom,
         if final_score <= 0:
             final_score = 0.01
     
-    return final_score, normalized_distance
+    return final_score, distance
 
 def evaluate_on_test_set(model_path, test_path, resolution=(256, 256), num_samples=100):
     """Evaluate model on test set and calculate game scores."""
@@ -95,13 +94,13 @@ def evaluate_on_test_set(model_path, test_path, resolution=(256, 256), num_sampl
             )
             
             # Calculate game score
-            score, norm_dist = calculate_game_score(
+            score, dist = calculate_game_score(
                 pred_x, pred_y, pred_zoom,
                 true_x, true_y, true_zoom
             )
             
             scores.append(score)
-            distances.append(norm_dist)
+            distances.append(dist)
             
             # Calculate raw errors for analysis
             coord_error = np.sqrt((pred_x - true_x)**2 + (pred_y - true_y)**2)
@@ -116,28 +115,28 @@ def evaluate_on_test_set(model_path, test_path, resolution=(256, 256), num_sampl
     zoom_errors = np.array(zoom_errors)
     
     # Score distribution
-    perfect_scores = np.sum(scores == 5000)
-    high_scores = np.sum(scores >= 4000)
-    medium_scores = np.sum((scores >= 1000) & (scores < 4000))
-    low_scores = np.sum((scores >= 1) & (scores < 1000))
+    perfect_scores = np.sum(scores == 10000)
+    high_scores = np.sum(scores >= 8000)
+    medium_scores = np.sum((scores >= 2000) & (scores < 8000))
+    low_scores = np.sum((scores >= 1) & (scores < 2000))
     fractional_scores = np.sum(scores < 1)
     
     print("\n=== Game Score Evaluation ===")
-    print(f"Average Score: {np.mean(scores):.1f} / 5000")
+    print(f"Average Score: {np.mean(scores):.1f} / 10000")
     print(f"Median Score: {np.median(scores):.1f}")
     print(f"Min Score: {np.min(scores):.2f}")
     print(f"Max Score: {np.max(scores):.0f}")
     
     print("\n=== Score Distribution ===")
-    print(f"Perfect (5000): {perfect_scores} ({100*perfect_scores/len(scores):.1f}%)")
-    print(f"High (≥4000): {high_scores} ({100*high_scores/len(scores):.1f}%)")
-    print(f"Medium (1000-3999): {medium_scores} ({100*medium_scores/len(scores):.1f}%)")
-    print(f"Low (1-999): {low_scores} ({100*low_scores/len(scores):.1f}%)")
+    print(f"Perfect (10000): {perfect_scores} ({100*perfect_scores/len(scores):.1f}%)")
+    print(f"High (≥8000): {high_scores} ({100*high_scores/len(scores):.1f}%)")
+    print(f"Medium (2000-7999): {medium_scores} ({100*medium_scores/len(scores):.1f}%)")
+    print(f"Low (1-1999): {low_scores} ({100*low_scores/len(scores):.1f}%)")
     print(f"Fractional (<1): {fractional_scores} ({100*fractional_scores/len(scores):.1f}%)")
     
     print("\n=== Distance Metrics ===")
-    print(f"Average Normalized Distance: {np.mean(distances):.3f}")
-    print(f"Median Normalized Distance: {np.median(distances):.3f}")
+    print(f"Average Distance: {np.mean(distances):.3f}")
+    print(f"Median Distance: {np.median(distances):.3f}")
     
     print("\n=== Raw Prediction Errors ===")
     print(f"Coordinate MAE: {np.mean(coord_errors):.4f}")
@@ -194,7 +193,7 @@ def main():
                 str(p): float(np.percentile(results['scores'], p))
                 for p in [10, 25, 50, 75, 90]
             },
-            'perfect_scores': int(np.sum(results['scores'] == 5000)),
+            'perfect_scores': int(np.sum(results['scores'] == 10000)),
             'total_samples': len(results['scores'])
         }, f, indent=2)
     

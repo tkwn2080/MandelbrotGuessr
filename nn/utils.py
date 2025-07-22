@@ -87,8 +87,8 @@ def normalize_coordinates(x: float, y: float, zoom: float) -> Tuple[float, float
     # Normalize x to [-1, 1] based on typical Mandelbrot bounds
     x_norm = (x - (config.X_MIN + config.X_MAX) / 2) / ((config.X_MAX - config.X_MIN) / 2)
     
-    # Normalize y to [-1, 1] 
-    y_norm = y / config.Y_MAX
+    # Normalize y to [-1, 1] (now that Y_MIN = -Y_MAX)
+    y_norm = y / config.Y_MAX  # This works because y is in [-Y_MAX, Y_MAX]
     
     # Convert zoom to log scale
     log_zoom = np.log10(zoom)
@@ -185,8 +185,8 @@ def generate_uniform_locations(
     pbar = tqdm(total=num_samples, desc="Generating quality locations", unit="loc")
     
     while len(locations) < num_samples:
-        # True uniform sampling
-        x, y, zoom = sample_location(zoom_range, respect_symmetry=True)
+        # True uniform sampling from full complex plane
+        x, y, zoom = sample_location(zoom_range, respect_symmetry=False)
         attempts += 1
         
         # Generate preview for validation (larger size for better quality metrics)

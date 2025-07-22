@@ -678,6 +678,7 @@
         let minimapExpanded = false;
         let mouseDownTime = 0;
         let mouseDownPos = { x: 0, y: 0 };
+        let canPlaceGuess = true; // Control when guesses can be placed
         const CLICK_THRESHOLD = 200; // milliseconds
         const DRAG_THRESHOLD = 5; // pixels
         const ROUNDS_PER_GAME = 5;
@@ -1072,28 +1073,31 @@
             
             // It's a click if it was quick and didn't move much
             if (timeDiff < CLICK_THRESHOLD && distance < DRAG_THRESHOLD && !isDragging) {
-                // Handle click
-                const rect = minimapCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+                // Only allow placing guesses when canPlaceGuess is true
+                if (canPlaceGuess && gameActive) {
+                    // Handle click
+                    const rect = minimapCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
 
-                // Convert to current minimap Mandelbrot coordinates
-                const mandX = minimapBounds.xmin + (x / rect.width) * (minimapBounds.xmax - minimapBounds.xmin);
-                const mandY = minimapBounds.ymin + (y / rect.height) * (minimapBounds.ymax - minimapBounds.ymin);
+                    // Convert to current minimap Mandelbrot coordinates
+                    const mandX = minimapBounds.xmin + (x / rect.width) * (minimapBounds.xmax - minimapBounds.xmin);
+                    const mandY = minimapBounds.ymin + (y / rect.height) * (minimapBounds.ymax - minimapBounds.ymin);
 
-                currentGuess = { x: mandX, y: mandY };
+                    currentGuess = { x: mandX, y: mandY };
 
-                // Update marker position with click feedback
-                const marker = document.getElementById('guessMarker');
-                marker.style.left = x + 'px';
-                marker.style.top = y + 'px';
-                marker.style.display = 'block';
-                
-                // Visual click feedback
-                marker.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                setTimeout(() => {
-                    marker.style.transform = 'translate(-50%, -50%) scale(1)';
-                }, 200);
+                    // Update marker position with click feedback
+                    const marker = document.getElementById('guessMarker');
+                    marker.style.left = x + 'px';
+                    marker.style.top = y + 'px';
+                    marker.style.display = 'block';
+                    
+                    // Visual click feedback
+                    marker.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                    setTimeout(() => {
+                        marker.style.transform = 'translate(-50%, -50%) scale(1)';
+                    }, 200);
+                }
             }
             
             isDragging = false;
@@ -1144,6 +1148,7 @@
             if (!currentLocation || !gameActive) return;
             
             stopTimer();
+            canPlaceGuess = false; // Disable placing new guesses
             
             // If no guess was made, use center of map
             if (!currentGuess) {
@@ -1158,14 +1163,10 @@
             // Calculate score with more variety and normalized by zoom level
             const maxScore = 10000;
             
-            // Normalize distance by the zoom level to make scores comparable
-            // At higher zoom, the same pixel distance represents a smaller actual distance
-            const normalizedDistance = distance * currentLocation.zoom;
-            
-            // Use a steep exponential decay for scoring
-            // This makes you need to be quite accurate for high scores
-            const decayFactor = 200; // Balanced - not too harsh, not too generous
-            const scoreRatio = Math.exp(-normalizedDistance / decayFactor);
+            // Simple distance-based scoring without zoom normalization
+            // The need for zoom naturally emerges from pixel precision limitations
+            const decayFactor = 0.3; // Gentler decay for better score distribution
+            const scoreRatio = Math.exp(-distance / decayFactor);
             
             // Calculate score without a minimum floor - let it decay naturally
             let finalScore = maxScore * scoreRatio;
@@ -1182,7 +1183,7 @@
             }
             
             // Console log for debugging
-            console.log(`Distance: ${distance.toFixed(6)}, Zoom: ${currentLocation.zoom}, Normalized: ${normalizedDistance.toFixed(2)}, Score: ${finalScore}`);
+            console.log(`Distance: ${distance.toFixed(6)}, Score: ${finalScore}`);
 
             totalScore += finalScore;
             document.getElementById('scoreValue').textContent = totalScore;
@@ -1467,6 +1468,7 @@
                 zoomAnimationActive = false;
             }
             
+            canPlaceGuess = true; // Re-enable placing guesses for new round
             roundNumber++;
             document.getElementById('roundValue').textContent = roundNumber + 1;
 
@@ -1503,6 +1505,7 @@
         function startNewGame() {
             totalScore = 0;
             roundNumber = 0;
+            canPlaceGuess = true; // Enable placing guesses at game start
             gameActive = true;
             document.getElementById('scoreValue').textContent = '0';
             document.getElementById('roundValue').textContent = '1';

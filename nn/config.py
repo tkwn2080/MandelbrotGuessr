@@ -11,7 +11,7 @@ ZOOM_RANGE_TEST1 = (4.0, 4.3)   # 10,000 to ~20,000
 ZOOM_RANGE_TEST2 = (4.3, 5.0)   # ~20,000 to 100,000
 
 # Coordinate constraints
-Y_MIN = 0.0001  # Avoid exact real axis, upper half-plane only
+Y_MIN = -1.25  # Full complex plane (both upper and lower half)
 X_MIN = -2.5
 X_MAX = 1.0
 Y_MAX = 1.25

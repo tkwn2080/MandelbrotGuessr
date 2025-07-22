@@ -15,7 +15,7 @@ import json
 
 import config
 import utils
-from model import MandelbrotCNN, MandelbrotLoss
+from model import MandelbrotCNN, MandelbrotLoss, ScreenLoss
 
 
 class DataLoader:
@@ -104,7 +104,9 @@ def evaluate(model, dataloader, loss_fn):
 def train_epoch(model, optimizer, train_loader, loss_fn, epoch):
     """Train for one epoch with gradient clipping."""
     total_loss = 0
+    total_game_score = 0
     n_batches = len(train_loader)
+    is_screen_loss = isinstance(loss_fn, ScreenLoss)
     
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
     for i, (images, targets) in enumerate(pbar):
@@ -140,11 +142,27 @@ def train_epoch(model, optimizer, train_loader, loss_fn, epoch):
         total_loss += loss_value.item()
         avg_loss = total_loss / (i + 1)
         
-        # Update progress bar with more info
-        pbar.set_postfix({
-            'loss': f'{avg_loss:.4f}',
-            'lr': f'{optimizer.learning_rate:.2e}'
-        })
+        # For ScreenLoss, also track average game score
+        if is_screen_loss:
+            # Get predictions again to calculate mean score
+            predictions = model(images)
+            components = loss_fn(predictions, targets, return_components=True)
+            mean_score = components['mean_score'].item()
+            total_game_score += mean_score
+            avg_game_score = total_game_score / (i + 1)
+            
+            # Update progress bar with game score info
+            pbar.set_postfix({
+                'loss': f'{avg_loss:.4f}',
+                'score': f'{avg_game_score:.1f}',
+                'lr': f'{optimizer.learning_rate:.2e}'
+            })
+        else:
+            # Update progress bar with standard info
+            pbar.set_postfix({
+                'loss': f'{avg_loss:.4f}',
+                'lr': f'{optimizer.learning_rate:.2e}'
+            })
     
     return avg_loss
 
@@ -165,6 +183,8 @@ def main():
                         help="Resume from latest checkpoint")
     parser.add_argument("--pretrained", type=str, default=None,
                         help="Path to pretrained model")
+    parser.add_argument("--loss", type=str, default="mandelbrot", choices=["mandelbrot", "screen"],
+                        help="Loss function to use: 'mandelbrot' (traditional) or 'screen' (pixel-constrained)")
     
     args = parser.parse_args()
     
@@ -227,7 +247,14 @@ def main():
     
     # Setup optimizer and loss
     optimizer = optim.Adam(learning_rate=args.lr)
-    loss_fn = MandelbrotLoss()
+    
+    # Choose loss function based on command line argument
+    if args.loss == "screen":
+        print("Using ScreenLoss (pixel-constrained score optimization)")
+        loss_fn = ScreenLoss()
+    else:
+        print("Using MandelbrotLoss (traditional supervised learning)")
+        loss_fn = MandelbrotLoss()
     
     # Training loop with early stopping
     print(f"\nStarting training on {resolution[0]}x{resolution[1]} images")
